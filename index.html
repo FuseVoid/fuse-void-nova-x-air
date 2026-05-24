@@ -114,34 +114,85 @@
             { src: 'images/nova-5-sequencer.png', alt: 'NOVA-X AIR Sequencer on iPad', caption: 'Sequencer · 4 tracks · 32 steps' },
         ];
 
+        const gallerySection = document.getElementById('site-gallery');
         const galleryImg = document.getElementById('gallery-img');
         const galleryCaption = document.getElementById('gallery-caption');
         const galleryDots = document.getElementById('gallery-dots');
         let galleryIndex = 0;
+        let galleryTimer = null;
+        const GALLERY_INTERVAL_MS = 5500;
 
         GALLERY.forEach((_, i) => {
             const dot = document.createElement('button');
             dot.type = 'button';
             dot.className = 'site-gallery__dot';
             dot.setAttribute('aria-label', `Screen ${i + 1}`);
-            dot.addEventListener('click', () => setGallery(i));
+            dot.addEventListener('click', () => {
+                setGallery(i);
+                restartGalleryAutoplay();
+            });
             galleryDots.appendChild(dot);
         });
 
         function setGallery(index) {
             galleryIndex = (index + GALLERY.length) % GALLERY.length;
             const item = GALLERY[galleryIndex];
-            galleryImg.src = item.src;
-            galleryImg.alt = item.alt;
-            galleryCaption.textContent = item.caption;
-            galleryDots.querySelectorAll('.site-gallery__dot').forEach((dot, i) => {
-                dot.classList.toggle('is-active', i === galleryIndex);
+            galleryImg.classList.add('is-fading');
+            requestAnimationFrame(() => {
+                galleryImg.src = item.src;
+                galleryImg.alt = item.alt;
+                galleryCaption.textContent = item.caption;
+                galleryDots.querySelectorAll('.site-gallery__dot').forEach((dot, i) => {
+                    dot.classList.toggle('is-active', i === galleryIndex);
+                });
+                galleryImg.onload = () => galleryImg.classList.remove('is-fading');
+                if (galleryImg.complete) galleryImg.classList.remove('is-fading');
             });
         }
 
-        document.getElementById('gallery-prev').addEventListener('click', () => setGallery(galleryIndex - 1));
-        document.getElementById('gallery-next').addEventListener('click', () => setGallery(galleryIndex + 1));
+        function advanceGallery() {
+            setGallery(galleryIndex + 1);
+        }
+
+        function stopGalleryAutoplay() {
+            if (galleryTimer) {
+                clearInterval(galleryTimer);
+                galleryTimer = null;
+            }
+        }
+
+        function startGalleryAutoplay() {
+            stopGalleryAutoplay();
+            galleryTimer = setInterval(advanceGallery, GALLERY_INTERVAL_MS);
+        }
+
+        function restartGalleryAutoplay() {
+            if (!gallerySection.classList.contains('is-visible')) return;
+            startGalleryAutoplay();
+        }
+
+        document.getElementById('gallery-prev').addEventListener('click', () => {
+            setGallery(galleryIndex - 1);
+            restartGalleryAutoplay();
+        });
+        document.getElementById('gallery-next').addEventListener('click', () => {
+            setGallery(galleryIndex + 1);
+            restartGalleryAutoplay();
+        });
+
         setGallery(0);
+
+        const galleryObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    gallerySection.classList.toggle('is-visible', entry.isIntersecting);
+                    if (entry.isIntersecting) startGalleryAutoplay();
+                    else stopGalleryAutoplay();
+                });
+            },
+            { threshold: 0.35 }
+        );
+        galleryObserver.observe(gallerySection);
     </script>
 </body>
 </html>

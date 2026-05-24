@@ -221,11 +221,24 @@ body.has-focus #scene-canvas {
     margin-bottom: 0.45rem;
 }
 
+.site-gallery__frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+    opacity: 1;
+    transition: opacity 0.85s ease;
+}
+
+.site-gallery__frame img.is-fading {
+    opacity: 0.15;
+}
+
 .site-gallery__caption {
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
+    transition: opacity 0.55s ease;
 }
 
 .site-gallery__stage {
@@ -263,12 +276,6 @@ body.has-focus #scene-canvas {
     overflow: hidden;
     background: rgba(255, 255, 255, 0.02);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-}
-
-.site-gallery__frame img {
-    display: block;
-    width: 100%;
-    height: auto;
 }
 
 .site-gallery__dots {
