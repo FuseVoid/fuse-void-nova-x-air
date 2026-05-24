@@ -348,6 +348,141 @@ function makeStarSpriteTexture() {
 }
 
 const starSpriteTex = makeStarSpriteTexture();
+const starParticles = [];
+let starMouseX = innerWidth * 0.5;
+let starMouseY = innerHeight * 0.5;
+const _starProj = new THREE.Vector3();
+
+function addStarSample(x, y, z, brightness, spectral, positions, colors, sizes, twinkle, idx) {
+    starParticles.push({
+        bx: x, by: y, bz: z,
+        ox: 0, oy: 0, oz: 0,
+        brightness,
+    });
+    let col;
+    if (spectral === 'blue') col = new THREE.Color().setHSL(0.58, 0.55, 0.55 + brightness * 0.42);
+    else if (spectral === 'warm') col = new THREE.Color().setHSL(0.09, 0.45, 0.48 + brightness * 0.38);
+    else if (spectral === 'gold') col = new THREE.Color().setHSL(0.12, 0.28, 0.58 + brightness * 0.35);
+    else col = new THREE.Color().setHSL(0.62, 0.08, 0.62 + brightness * 0.4);
+
+    positions[idx * 3] = x;
+    positions[idx * 3 + 1] = y;
+    positions[idx * 3 + 2] = z;
+    colors[idx * 3] = col.r;
+    colors[idx * 3 + 1] = col.g;
+    colors[idx * 3 + 2] = col.b;
+    sizes[idx] = 2.2 + brightness * 7.5 + (brightness > 0.92 ? 6 : 0);
+    twinkle[idx] = Math.random() * Math.PI * 2;
+}
+
+function buildStarfield() {
+    const count = innerWidth < 768 ? 5200 : 8800;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const twinkle = new Float32Array(count);
+    starParticles.length = 0;
+
+    const clusters = [
+        { x: -22, y: 14, z: -48, spread: 14 },
+        { x: 28, y: -6, z: -62, spread: 18 },
+        { x: -8, y: -18, z: -55, spread: 11 },
+        { x: 16, y: 22, z: -70, spread: 16 },
+        { x: -34, y: 4, z: -58, spread: 12 },
+    ];
+    const clusterStars = Math.floor(count * 0.38);
+    let idx = 0;
+
+    for (let c = 0; c < clusterStars; c += 1) {
+        const cl = clusters[c % clusters.length];
+        const brightness = Math.pow(Math.random(), 1.8);
+        const roll = Math.random();
+        const spectral = roll < 0.08 ? 'blue' : roll < 0.2 ? 'warm' : roll < 0.45 ? 'gold' : 'white';
+        addStarSample(
+            cl.x + (Math.random() - 0.5) * cl.spread,
+            cl.y + (Math.random() - 0.5) * cl.spread,
+            cl.z + (Math.random() - 0.5) * cl.spread * 0.7,
+            brightness,
+            spectral,
+            positions, colors, sizes, twinkle, idx,
+        );
+        idx += 1;
+    }
+
+    while (idx < count) {
+        const r = 28 + Math.random() * 62;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const x = r * Math.sin(phi) * Math.cos(theta);
+        const y = r * Math.sin(phi) * Math.sin(theta) * 0.65;
+        const z = -Math.abs(r * Math.cos(phi)) - 8;
+        const brightness = Math.pow(Math.random(), 2.8);
+        const roll = Math.random();
+        const spectral = roll < 0.06 ? 'blue' : roll < 0.14 ? 'warm' : roll < 0.32 ? 'gold' : 'white';
+        addStarSample(x, y, z, brightness, spectral, positions, colors, sizes, twinkle, idx);
+        idx += 1;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geo.setAttribute('twinkle', new THREE.BufferAttribute(twinkle, 1));
+
+    const mat = new THREE.ShaderMaterial({
+        uniforms: {
+            uMap: { value: starSpriteTex },
+            uOpacity: { value: 1 },
+            uTime: { value: 0 },
+            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        },
+        vertexShader: `
+            attribute float size;
+            attribute float twinkle;
+            attribute vec3 color;
+            uniform float uPixelRatio;
+            varying vec3 vColor;
+            varying float vTwinkle;
+            void main() {
+                vColor = color;
+                vTwinkle = twinkle;
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                gl_Position = projectionMatrix * mv;
+                float depth = max(-mv.z, 6.0);
+                gl_PointSize = max(2.0, size * uPixelRatio * (420.0 / depth));
+            }
+        `,
+        fragmentShader: `
+            uniform sampler2D uMap;
+            uniform float uOpacity;
+            uniform float uTime;
+            varying vec3 vColor;
+            varying float vTwinkle;
+            void main() {
+                vec4 tex = texture2D(uMap, gl_PointCoord);
+                float pulse = 0.78 + 0.22 * sin(uTime * 1.4 + vTwinkle);
+                float a = tex.a * uOpacity * pulse;
+                if (a < 0.004) discard;
+                gl_FragColor = vec4(vColor * tex.rgb, a);
+            }
+        `,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+        fog: false,
+        blending: THREE.AdditiveBlending,
+    });
+
+    const points = new THREE.Points(geo, mat);
+    points.renderOrder = -10;
+    points.frustumCulled = false;
+    return { points, geo, mat };
+}
+
+const starfieldData = buildStarfield();
+const starfield = new THREE.Group();
+starfield.add(starfieldData.points);
+camera.add(starfield);
 
 function createAsteroidGeometry(radius, seed) {
     const detail = radius > 0.28 ? 2 : 1;
@@ -426,110 +561,6 @@ for (let i = 0; i < rockCount; i += 1) {
     floatingRocks.add(createFloatingRock());
 }
 scene.add(floatingRocks);
-
-function createStarLayer(count, opts) {
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    const twinkle = new Float32Array(count);
-
-    for (let i = 0; i < count; i += 1) {
-        let x;
-        let y;
-        let z;
-        if (opts.band && Math.random() < 0.42) {
-            const r = 38 + Math.random() * 42;
-            const a = Math.random() * Math.PI * 2 + 0.35;
-            x = Math.cos(a) * r;
-            z = Math.sin(a) * r;
-            y = (Math.random() - 0.5) * 6.5;
-        } else {
-            const r = opts.minR + Math.random() * (opts.maxR - opts.minR);
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            x = r * Math.sin(phi) * Math.cos(theta);
-            y = r * Math.sin(phi) * Math.sin(theta) * 0.55;
-            z = r * Math.cos(phi);
-        }
-
-        const roll = Math.random();
-        const brightness = Math.pow(Math.random(), opts.dimBias ?? 2.4);
-        let col;
-        if (roll < 0.12) col = new THREE.Color().setHSL(0.58, 0.35, 0.55 + brightness * 0.4);
-        else if (roll < 0.18) col = new THREE.Color().setHSL(0.08, 0.25, 0.5 + brightness * 0.35);
-        else col = new THREE.Color().setHSL(0.62, 0.06, 0.62 + brightness * 0.38);
-
-        positions[i * 3] = x;
-        positions[i * 3 + 1] = y;
-        positions[i * 3 + 2] = z;
-        colors[i * 3] = col.r;
-        colors[i * 3 + 1] = col.g;
-        colors[i * 3 + 2] = col.b;
-        sizes[i] = opts.sizeMin + brightness * opts.sizeRange + (roll > 0.985 ? opts.sizeRange * 1.8 : 0);
-        twinkle[i] = Math.random() * Math.PI * 2;
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geo.setAttribute('twinkle', new THREE.BufferAttribute(twinkle, 1));
-
-    const mat = new THREE.ShaderMaterial({
-        uniforms: {
-            uMap: { value: starSpriteTex },
-            uOpacity: { value: opts.opacity },
-            uTime: { value: 0 },
-            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        },
-        vertexShader: `
-            attribute float size;
-            attribute float twinkle;
-            attribute vec3 color;
-            uniform float uPixelRatio;
-            varying vec3 vColor;
-            varying float vTwinkle;
-            void main() {
-                vColor = color;
-                vTwinkle = twinkle;
-                vec4 mv = modelViewMatrix * vec4(position, 1.0);
-                gl_Position = projectionMatrix * mv;
-                gl_PointSize = size * uPixelRatio * (320.0 / -mv.z);
-            }
-        `,
-        fragmentShader: `
-            uniform sampler2D uMap;
-            uniform float uOpacity;
-            uniform float uTime;
-            varying vec3 vColor;
-            varying float vTwinkle;
-            void main() {
-                vec4 tex = texture2D(uMap, gl_PointCoord);
-                float pulse = 0.82 + 0.18 * sin(uTime * 1.6 + vTwinkle);
-                float a = tex.a * uOpacity * pulse;
-                if (a < 0.003) discard;
-                gl_FragColor = vec4(vColor * tex.rgb, a);
-            }
-        `,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-    });
-
-    const points = new THREE.Points(geo, mat);
-    points.renderOrder = -2;
-    points.userData.baseOpacity = opts.opacity;
-    return points;
-}
-
-const starfield = new THREE.Group();
-starfield.add(createStarLayer(innerWidth < 768 ? 4200 : 7500, {
-    minR: 32, maxR: 78, sizeMin: 0.012, sizeRange: 0.09, opacity: 0.92, band: true, dimBias: 2.6,
-}));
-starfield.add(createStarLayer(innerWidth < 768 ? 800 : 1400, {
-    minR: 45, maxR: 90, sizeMin: 0.04, sizeRange: 0.16, opacity: 0.55, band: true, dimBias: 1.4,
-}));
-scene.add(starfield);
 
 function wrapTextLines(ctx, text, maxWidth) {
     const words = text.split(' ');
@@ -1029,6 +1060,8 @@ function onPointerUp(e) {
 }
 
 function onPointerMove(e) {
+    starMouseX = e.clientX;
+    starMouseY = e.clientY;
     if (!isDragging || !dragRing) return;
     const dx = e.clientX - dragLastX;
     const dy = e.clientY - dragLastY;
@@ -1052,11 +1085,9 @@ function resize() {
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
     const pr = Math.min(window.devicePixelRatio, 2);
-    starfield.children.forEach((layer) => {
-        if (layer.material.uniforms?.uPixelRatio) {
-            layer.material.uniforms.uPixelRatio.value = pr;
-        }
-    });
+    if (starfieldData.mat.uniforms?.uPixelRatio) {
+        starfieldData.mat.uniforms.uPixelRatio.value = pr;
+    }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -1108,11 +1139,42 @@ function animate() {
     });
     floatingRocks.visible = sceneFade > 0.03;
     starfield.visible = sceneFade > 0.03;
-    starfield.children.forEach((layer) => {
-        const base = layer.userData.baseOpacity ?? 0.9;
-        layer.material.uniforms.uOpacity.value = base * sceneFade;
-        layer.material.uniforms.uTime.value = t;
+    starfieldData.mat.uniforms.uOpacity.value = sceneFade;
+    starfieldData.mat.uniforms.uTime.value = t;
+
+    const starPos = starfieldData.geo.attributes.position;
+    starParticles.forEach((p, i) => {
+        const x = p.bx + p.ox;
+        const y = p.by + p.oy;
+        const z = p.bz + p.oz;
+        _starProj.set(x, y, z).applyMatrix4(camera.matrixWorld);
+        _starProj.project(camera);
+        const sx = (_starProj.x * 0.5 + 0.5) * innerWidth;
+        const sy = (-_starProj.y * 0.5 + 0.5) * innerHeight;
+        const mdx = sx - starMouseX;
+        const mdy = sy - starMouseY;
+        const dist = Math.hypot(mdx, mdy);
+
+        let targetOx = 0;
+        let targetOy = 0;
+        let targetOz = 0;
+        if (dist < 160 && dist > 0 && sceneFade > 0.08) {
+            const force = (1 - dist / 160) * 0.92;
+            const push = force * (0.35 + p.brightness * 0.55);
+            targetOx = (mdx / dist) * push;
+            targetOy = (-mdy / dist) * push;
+            targetOz = force * 0.08;
+        }
+
+        p.ox += (targetOx - p.ox) * 0.13;
+        p.oy += (targetOy - p.oy) * 0.13;
+        p.oz += (targetOz - p.oz) * 0.13;
+
+        starPos.array[i * 3] = p.bx + p.ox;
+        starPos.array[i * 3 + 1] = p.by + p.oy;
+        starPos.array[i * 3 + 2] = p.bz + p.oz;
     });
+    starPos.needsUpdate = true;
 
     renderer.render(scene, camera);
 }
