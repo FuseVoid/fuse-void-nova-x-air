@@ -22,6 +22,15 @@ body {
 
 body.is-dragging { cursor: grabbing; }
 
+body.at-site-end {
+    cursor: auto;
+}
+
+body.at-site-end .scene-chrome {
+    opacity: 0;
+    pointer-events: none;
+}
+
 body.has-focus #scene-canvas {
     filter: blur(0.4px);
     transition: filter 0.4s ease;
@@ -34,7 +43,7 @@ body.has-focus #scene-canvas {
     height: 100%;
     z-index: 1;
     touch-action: none;
-    transition: filter 0.4s ease;
+    transition: filter 0.4s ease, opacity 0.45s ease;
 }
 
 .scroll-spacer {
@@ -113,14 +122,18 @@ body.has-focus #scene-canvas {
     color: var(--muted);
 }
 
+.scene-chrome {
+    transition: opacity 0.35s ease;
+}
+
 .hint--left {
     left: 2rem;
-    bottom: 8.5rem;
+    bottom: 2.5rem;
 }
 
 .hint--right {
     right: 2rem;
-    bottom: 8.5rem;
+    bottom: 2.5rem;
     flex-direction: row-reverse;
     text-align: right;
 }
@@ -140,7 +153,7 @@ body.has-focus #scene-canvas {
 .scroll-progress {
     position: fixed;
     left: 50%;
-    bottom: 7.25rem;
+    bottom: 1.25rem;
     transform: translateX(-50%);
     z-index: 20;
     width: min(8rem, 30vw);
@@ -149,20 +162,24 @@ body.has-focus #scene-canvas {
     pointer-events: none;
 }
 
+.site-end {
+    position: relative;
+    z-index: 5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 1.5rem 3rem;
+    background: var(--bg);
+}
+
 .site-footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 20;
+    width: min(40rem, 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    padding: 1rem 1.25rem 1.15rem;
+    gap: 0.55rem;
     text-align: center;
-    pointer-events: auto;
-    background: linear-gradient(to top, rgba(5, 5, 5, 0.82) 0%, rgba(5, 5, 5, 0.45) 70%, transparent 100%);
 }
 
 .site-footer__privacy {
@@ -236,7 +253,7 @@ body.has-focus #scene-canvas {
 
 #boot-error {
     position: fixed;
-    inset: auto 1rem 7.5rem 1rem;
+    inset: auto 1rem 1rem 1rem;
     z-index: 100;
     padding: 0.75rem 1rem;
     border: 1px solid rgba(255, 80, 80, 0.5);
@@ -375,7 +392,6 @@ body.has-focus #scene-canvas {
     .site-actions { top: 1.1rem; right: 1.1rem; gap: 0.35rem; }
     .site-action { font-size: 0.52rem; padding: 0.42rem 0.65rem; letter-spacing: 0.16em; }
     .hint { display: none; }
-    .scroll-progress { bottom: 6.5rem; }
-    .site-footer { padding: 0.85rem 1rem 1rem; gap: 0.35rem; }
+    .site-end { padding: 4.5rem 1rem 2.5rem; }
     .site-footer__privacy { font-size: 0.58rem; }
 }

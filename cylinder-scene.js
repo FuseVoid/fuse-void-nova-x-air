@@ -255,6 +255,7 @@ const PANEL_H = 0.92;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
+const siteEnd = document.getElementById('site-end');
 const scrollBar = document.getElementById('scroll-bar');
 const focusLayer = document.getElementById('focus-layer');
 const focusClose = document.getElementById('focus-close');
@@ -462,6 +463,27 @@ RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i));
 
 scrollSpacer.style.height = `${(RINGS.length + 1) * 100}vh`;
 
+function cylinderScrollMax() {
+    return Math.max(1, scrollSpacer.offsetHeight);
+}
+
+function syncScrollFromPage() {
+    const max = cylinderScrollMax();
+    const y = window.scrollY;
+    scrollTarget = THREE.MathUtils.clamp(y / max, 0, 1);
+
+    const fadeStart = Math.max(0, max - innerHeight);
+    const fade = y <= fadeStart ? 1 : Math.max(0, 1 - (y - fadeStart) / innerHeight);
+    canvas.style.opacity = String(fade);
+    canvas.style.pointerEvents = fade > 0.15 ? 'auto' : 'none';
+
+    const atEnd = y >= fadeStart + innerHeight * 0.35;
+    document.body.classList.toggle('at-site-end', atEnd);
+}
+
+window.addEventListener('scroll', syncScrollFromPage, { passive: true });
+syncScrollFromPage();
+
 function resumeRing(group) {
     if (group) group.userData.paused = false;
 }
@@ -589,23 +611,6 @@ focusClose.addEventListener('click', clearFocus);
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && activePanel) clearFocus();
 });
-
-window.addEventListener('wheel', (e) => {
-    scrollTarget = THREE.MathUtils.clamp(scrollTarget + e.deltaY * 0.004, 0, 1);
-}, { passive: true });
-
-window.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) dragLastX = e.touches[0].clientX;
-}, { passive: true });
-
-window.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 1) {
-        scrollTarget = THREE.MathUtils.clamp(
-            scrollTarget + (dragLastX - e.touches[0].clientX) * 0.003, 0, 1
-        );
-        dragLastX = e.touches[0].clientX;
-    }
-}, { passive: true });
 
 function resize() {
     camera.aspect = innerWidth / innerHeight;
