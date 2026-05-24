@@ -321,6 +321,85 @@ let dragLastX = 0;
 let dragOriginX = 0;
 let dragRing = null;
 
+function buildDustWomanParticles() {
+    const particles = [];
+    const add = (cy, rx, ry, rz, count, cx = 0, cz = 0) => {
+        for (let i = 0; i < count; i += 1) {
+            particles.push({
+                bx: cx + (Math.random() - 0.5) * rx * 2,
+                by: cy + (Math.random() - 0.5) * ry * 2,
+                bz: cz + (Math.random() - 0.5) * rz * 2,
+                phase: Math.random() * Math.PI * 2,
+                tw: 0.65 + Math.random() * 0.55,
+            });
+        }
+    };
+
+    const topY = RING_HEIGHT * 0.55 + 0.85;
+    const bottomY = -(RINGS.length - 1) * RING_GAP - RING_HEIGHT * 0.62;
+    const span = topY - bottomY;
+    const yAt = (t) => topY - t * span;
+
+    add(yAt(0.02), 0.11, 0.13, 0.09, 52);
+    add(yAt(0.01), 0.15, 0.11, 0.12, 38, 0, -0.02);
+    add(yAt(0.07), 0.06, 0.07, 0.05, 18);
+    add(yAt(0.12), 0.24, 0.19, 0.12, 88);
+    add(yAt(0.19), 0.14, 0.16, 0.10, 62);
+    add(yAt(0.27), 0.30, 0.17, 0.14, 96);
+    add(yAt(0.16), 0.08, 0.34, 0.07, 42, -0.30, 0);
+    add(yAt(0.16), 0.08, 0.34, 0.07, 42, 0.30, 0);
+    add(yAt(0.36), 0.11, 0.42, 0.08, 48, -0.15, 0);
+    add(yAt(0.36), 0.11, 0.42, 0.08, 48, 0.15, 0);
+    add(yAt(0.52), 0.09, 0.38, 0.07, 44, -0.13, 0);
+    add(yAt(0.52), 0.09, 0.38, 0.07, 44, 0.13, 0);
+    add(yAt(0.68), 0.08, 0.34, 0.06, 38, -0.12, 0);
+    add(yAt(0.68), 0.08, 0.34, 0.06, 38, 0.12, 0);
+    add(yAt(0.84), 0.07, 0.22, 0.06, 30, -0.11, 0.04);
+    add(yAt(0.84), 0.07, 0.22, 0.06, 30, 0.11, 0.04);
+    add(yAt(0.95), 0.10, 0.08, 0.12, 34);
+    return particles;
+}
+
+const dustWomanParticles = buildDustWomanParticles();
+const dustWomanPositions = new Float32Array(dustWomanParticles.length * 3);
+dustWomanParticles.forEach((p, i) => {
+    dustWomanPositions[i * 3] = p.bx;
+    dustWomanPositions[i * 3 + 1] = p.by;
+    dustWomanPositions[i * 3 + 2] = p.bz;
+});
+
+const dustWomanGeom = new THREE.BufferGeometry();
+dustWomanGeom.setAttribute('position', new THREE.BufferAttribute(dustWomanPositions, 3));
+
+const dustWomanMat = new THREE.PointsMaterial({
+    color: 0xe6daf8,
+    size: 0.065,
+    transparent: true,
+    opacity: 0.74,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+});
+
+const dustWoman = new THREE.Points(dustWomanGeom, dustWomanMat);
+dustWoman.renderOrder = 6;
+scene.add(dustWoman);
+
+const dustWomanGlowMat = new THREE.PointsMaterial({
+    color: 0xf4eeff,
+    size: 0.12,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+});
+const dustWomanGlow = new THREE.Points(dustWomanGeom, dustWomanGlowMat);
+dustWomanGlow.renderOrder = 5;
+scene.add(dustWomanGlow);
+
+let dustWomanAlpha = 1;
+
 function wrapTextLines(ctx, text, maxWidth) {
     const words = text.split(' ');
     const lines = [];
@@ -621,6 +700,7 @@ function syncScrollFromPage() {
 
     canvas.style.opacity = String(fade);
     canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
+    dustWomanAlpha = fade;
 
     document.body.classList.toggle('past-cylinder', y >= gapTop + gapHeight);
 
@@ -861,6 +941,30 @@ function animate() {
             else panel.material.opacity = panel.userData.isScreen ? 0.9 : 0.92;
         }
     });
+
+    const posAttr = dustWomanGeom.attributes.position;
+    const sway = t * 0.55;
+    const spin = t * 0.11;
+    const cosY = Math.cos(spin);
+    const sinY = Math.sin(spin);
+    dustWomanParticles.forEach((p, i) => {
+        let x = p.bx;
+        let y = p.by + Math.sin(sway * 0.65 + p.phase) * 0.018;
+        let z = p.bz;
+        const rx = x * cosY - z * sinY;
+        const rz = x * sinY + z * cosY;
+        x = rx + Math.sin(sway + p.phase) * 0.014;
+        z = rz;
+        posAttr.array[i * 3] = x;
+        posAttr.array[i * 3 + 1] = y;
+        posAttr.array[i * 3 + 2] = z;
+    });
+    posAttr.needsUpdate = true;
+
+    dustWomanMat.opacity = 0.74 * dustWomanAlpha;
+    dustWomanGlowMat.opacity = 0.22 * dustWomanAlpha;
+    dustWoman.visible = dustWomanAlpha > 0.03;
+    dustWomanGlow.visible = dustWoman.visible;
 
     renderer.render(scene, camera);
 }
