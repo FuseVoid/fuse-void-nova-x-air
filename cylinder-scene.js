@@ -352,6 +352,14 @@ const starParticles = [];
 let starMouseX = innerWidth * 0.5;
 let starMouseY = innerHeight * 0.5;
 const _starProj = new THREE.Vector3();
+const _bhLocal = new THREE.Vector3(0, 26, -8);
+const _bhWorld = new THREE.Vector3();
+
+const BLACK_HOLE = {
+    radius: 2.4,
+    swallowRadius: 3.1,
+    pullStrength: 34,
+};
 
 function starColor(spectral, brightness) {
     const b = brightness;
@@ -405,8 +413,19 @@ function addStarSample(x, y, z, brightness, spectral, positions, colors, idx) {
     colors[idx * 3 + 2] = col.b;
 }
 
+function respawnStarParticle(p) {
+    p.ox = 0;
+    p.oy = 0;
+    p.oz = 0;
+    const r = 20 + Math.random() * 46;
+    const theta = Math.random() * Math.PI * 2;
+    p.bx = r * Math.cos(theta) * (0.65 + Math.random() * 0.7);
+    p.by = -14 - Math.random() * 32;
+    p.bz = -(20 + Math.random() * 44);
+}
+
 function buildStarfield() {
-    const count = innerWidth < 768 ? 1100 : 2100;
+    const count = innerWidth < 768 ? 520 : 920;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     starParticles.length = 0;
@@ -433,8 +452,8 @@ function buildStarfield() {
 
     let idx = 0;
     const openClusters = [
-        { x: -30, y: 18, z: -58, spread: 26, stars: 14 },
-        { x: 34, y: -10, z: -72, spread: 22, stars: 11 },
+        { x: -28, y: -8, z: -62, spread: 22, stars: 7 },
+        { x: 32, y: -16, z: -68, spread: 20, stars: 6 },
     ];
     openClusters.forEach((cl) => {
         for (let n = 0; n < cl.stars && idx < count; n += 1) {
@@ -490,7 +509,7 @@ function buildStarfield() {
     points.frustumCulled = false;
 
     const fieldCount = idx;
-    const brightCount = innerWidth < 768 ? 38 : 72;
+    const brightCount = innerWidth < 768 ? 18 : 34;
     const bPos = new Float32Array(brightCount * 3);
     const bCol = new Float32Array(brightCount * 3);
     const brightPlaced = [];
@@ -560,10 +579,82 @@ starfield.add(starfieldData.points);
 starfield.add(starfieldData.brightPoints);
 scene.add(starfield);
 
-function updateStarPositions(geo, startIdx, count) {
+function createBlackHole() {
+    const group = new THREE.Group();
+    const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(BLACK_HOLE.radius, 72),
+        new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            depthWrite: true,
+            side: THREE.DoubleSide,
+        }),
+    );
+    disc.renderOrder = 12;
+    group.add(disc);
+
+    const rim = new THREE.Mesh(
+        new THREE.RingGeometry(BLACK_HOLE.radius * 0.92, BLACK_HOLE.radius * 1.12, 72),
+        new THREE.MeshBasicMaterial({
+            color: 0x2a1408,
+            transparent: true,
+            opacity: 0.55,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+        }),
+    );
+    rim.renderOrder = 13;
+    group.add(rim);
+
+    const glow = new THREE.Mesh(
+        new THREE.RingGeometry(BLACK_HOLE.radius * 1.08, BLACK_HOLE.radius * 1.55, 72),
+        new THREE.MeshBasicMaterial({
+            color: 0xff5522,
+            transparent: true,
+            opacity: 0.07,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+        }),
+    );
+    glow.renderOrder = 11;
+    group.add(glow);
+
+    return group;
+}
+
+const blackHole = createBlackHole();
+scene.add(blackHole);
+
+function getBlackHoleWorldPosition(out) {
+    out.copy(_bhLocal);
+    out.applyQuaternion(camera.quaternion);
+    out.add(camera.position);
+    return out;
+}
+
+function updateStarPositions(geo, startIdx, count, delta) {
     const starPos = geo.attributes.position;
+    const bhX = _bhLocal.x;
+    const bhY = _bhLocal.y;
+    const bhZ = _bhLocal.z;
+
     for (let i = 0; i < count; i += 1) {
         const p = starParticles[startIdx + i];
+
+        const sdx = bhX - p.bx;
+        const sdy = bhY - p.by;
+        const sdz = bhZ - p.bz;
+        const sDist = Math.hypot(sdx, sdy, sdz);
+        if (sDist < BLACK_HOLE.swallowRadius) {
+            respawnStarParticle(p);
+        } else {
+            const pull = (BLACK_HOLE.pullStrength / (sDist * sDist + 6)) * delta * 60;
+            p.bx += (sdx / sDist) * pull;
+            p.by += (sdy / sDist) * pull;
+            p.bz += (sdz / sDist) * pull;
+        }
+
         const lx = p.bx + p.ox;
         const ly = p.by + p.oy;
         const lz = p.bz + p.oz;
@@ -638,6 +729,23 @@ function createAsteroidMaterial(seed) {
     });
 }
 
+function respawnRock(rock) {
+    const stackTop = RING_HEIGHT * 0.55 + 1.2;
+    const stackBottom = -(RINGS.length - 1) * RING_GAP - 1.1;
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 3.2 + Math.random() * 7.5;
+    rock.position.set(
+        Math.cos(angle) * radius,
+        stackBottom + Math.random() * (stackTop - stackBottom) * 0.42,
+        Math.sin(angle) * radius + (Math.random() - 0.5) * 3.5,
+    );
+    rock.userData.orbitA = angle;
+    rock.userData.orbitR = radius;
+    rock.userData.swayPh = Math.random() * Math.PI * 2;
+    rock.scale.setScalar(1);
+    rock.visible = true;
+}
+
 function createFloatingRock() {
     const seed = Math.random();
     const size = 0.12 + Math.random() * 0.48;
@@ -648,7 +756,7 @@ function createFloatingRock() {
     const radius = 2.4 + Math.random() * 6.2;
     mesh.position.set(
         Math.cos(angle) * radius,
-        stackBottom + Math.random() * (stackTop - stackBottom),
+        stackBottom + Math.random() * (stackTop - stackBottom) * 0.42,
         Math.sin(angle) * radius,
     );
     mesh.rotation.set(
@@ -1238,12 +1346,33 @@ function animate() {
         }
     });
 
+    const bhPos = getBlackHoleWorldPosition(_bhWorld);
+    blackHole.position.copy(bhPos);
+    blackHole.quaternion.copy(camera.quaternion);
+    blackHole.visible = sceneFade > 0.03;
+
     floatingRocks.children.forEach((rock) => {
         const d = rock.userData;
         d.orbitA += d.orbitSpeed * delta;
-        rock.position.x = Math.cos(d.orbitA) * d.orbitR + Math.sin(t * 0.11 + d.swayPh) * d.swayAmp;
-        rock.position.z = Math.sin(d.orbitA) * d.orbitR + Math.cos(t * 0.09 + d.swayPh) * d.swayAmp * 0.6;
-        rock.position.y = d.baseY + Math.sin(t * 0.13 + d.swayPh) * d.swayAmp * 0.45;
+        rock.position.x += Math.cos(d.orbitA) * d.swayAmp * delta * 0.35;
+        rock.position.z += Math.sin(d.orbitA) * d.swayAmp * delta * 0.28;
+        rock.position.y += Math.sin(t * 0.13 + d.swayPh) * d.swayAmp * delta * 0.18;
+
+        const dx = bhPos.x - rock.position.x;
+        const dy = bhPos.y - rock.position.y;
+        const dz = bhPos.z - rock.position.z;
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist < BLACK_HOLE.swallowRadius) {
+            respawnRock(rock);
+            return;
+        }
+        const pull = (BLACK_HOLE.pullStrength * 0.55 / (dist * dist + 8)) * delta * 60;
+        rock.position.x += (dx / dist) * pull;
+        rock.position.y += (dy / dist) * pull;
+        rock.position.z += (dz / dist) * pull;
+
+        const near = THREE.MathUtils.clamp(1 - (dist - BLACK_HOLE.radius) / 14, 0.35, 1);
+        rock.scale.setScalar(near);
         rock.rotation.x += d.rotVX * delta;
         rock.rotation.y += d.rotVY * delta;
         rock.rotation.z += d.rotVZ * delta;
@@ -1256,8 +1385,8 @@ function animate() {
     starfield.quaternion.copy(camera.quaternion);
     starfield.updateMatrixWorld(true);
 
-    updateStarPositions(starfieldData.geo, 0, starfieldData.fieldCount);
-    updateStarPositions(starfieldData.bGeo, starfieldData.fieldCount, starfieldData.brightCount);
+    updateStarPositions(starfieldData.geo, 0, starfieldData.fieldCount, delta);
+    updateStarPositions(starfieldData.bGeo, starfieldData.fieldCount, starfieldData.brightCount, delta);
 
     renderer.render(scene, camera);
 }
