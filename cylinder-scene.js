@@ -258,8 +258,11 @@ const RING_HEIGHT = 1.38;
 const RING_GAP = 3.35;
 const PANEL_W = 2.75;
 const PANEL_H = 0.92;
-const SCREEN_W = 3.82;
-const SCREEN_H = 1.24;
+const PANEL_ARC = PANEL_W;
+const SCREEN_ARC = 1.42;
+const SCREEN_H = 1.18;
+const RING_SLOTS = 6;
+const SCREEN_SLOT = 5;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -356,14 +359,19 @@ function loadImage(src) {
     });
 }
 
-function makeScreenTexture(img, accent, title) {
+function makeScreenTexture(img) {
     const c = document.createElement('canvas');
-    c.width = 720;
-    c.height = 248;
+    c.width = 480;
+    c.height = 340;
     const ctx = c.getContext('2d');
-    const pad = 10;
+    const pad = 14;
     const innerW = c.width - pad * 2;
-    const innerH = c.height - pad * 2 - 22;
+    const innerH = c.height - pad * 2;
+
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(4, 4, c.width - 8, c.height - 8);
+
     const aspect = img.width / img.height;
     let drawW = innerW;
     let drawH = drawW / aspect;
@@ -372,23 +380,11 @@ function makeScreenTexture(img, accent, title) {
         drawW = drawH * aspect;
     }
     const drawX = (c.width - drawW) * 0.5;
-    const drawY = pad + (innerH - drawH) * 0.5;
-
-    ctx.clearRect(0, 0, c.width, c.height);
-    ctx.fillStyle = 'rgba(255,255,255,0.035)';
-    ctx.fillRect(0, 0, c.width, c.height);
+    const drawY = (c.height - drawH) * 0.5;
     ctx.drawImage(img, drawX, drawY, drawW, drawH);
-    ctx.strokeStyle = `${accent}88`;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
     ctx.strokeRect(drawX - 1, drawY - 1, drawW + 2, drawH + 2);
-
-    ctx.fillStyle = accent;
-    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText((title || 'SCREEN').toUpperCase(), pad, c.height - 12);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    ctx.fillText('TAP · EXPAND', c.width - pad, c.height - 12);
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -441,29 +437,49 @@ function makeCompactPanelTexture(item, accent) {
     return tex;
 }
 
-function addPanel(group, config, item, angle, options = {}) {
+function createCurvedPanelGeometry(arcWidth, height, radius, segments = 18) {
+    const thetaLength = arcWidth / radius;
+    return new THREE.CylinderGeometry(
+        radius,
+        radius,
+        height,
+        segments,
+        1,
+        true,
+        -thetaLength / 2,
+        thetaLength
+    );
+}
+
+function slotAngle(slot) {
+    return (slot / RING_SLOTS) * Math.PI * 2 + 0.15;
+}
+
+function addCurvedPanel(group, config, item, angle, options = {}) {
     const isScreen = options.isScreen === true;
     const tex = options.texture;
-    const w = isScreen ? SCREEN_W : PANEL_W;
+    const arcW = isScreen ? SCREEN_ARC : PANEL_ARC;
     const h = isScreen ? SCREEN_H : PANEL_H;
+    const geo = createCurvedPanelGeometry(arcW, h, RING_RADIUS, isScreen ? 14 : 18);
     const mat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
-        opacity: isScreen ? 0.96 : 0.9,
+        opacity: isScreen ? 0.88 : 0.9,
     });
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    const radius = RING_RADIUS + (isScreen ? 0.1 : 0.06);
-    const px = Math.cos(angle) * radius;
-    const pz = Math.sin(angle) * radius;
-    panel.position.set(px, 0, pz);
-    panel.lookAt(px * 2.5, 0, pz * 2.5);
+
+    const holder = new THREE.Object3D();
+    holder.rotation.y = angle;
+
+    const panel = new THREE.Mesh(geo, mat);
+    holder.add(panel);
+    group.add(holder);
 
     panel.userData = {
         ring: group,
         ringRoot: group,
-        home: panel.position.clone(),
+        holder,
         accent: config.accent,
         item,
         title: item.title,
@@ -471,7 +487,6 @@ function addPanel(group, config, item, angle, options = {}) {
         pop: 0,
         isScreen,
     };
-    group.add(panel);
     clickable.push(panel);
     return panel;
 }
@@ -520,9 +535,8 @@ function createRing(config, y, index, screenImg) {
     group.add(botEdge);
 
     config.items.forEach((item, i) => {
-        const angle = (i / config.items.length) * Math.PI * 2 + 0.2;
         const tex = makeCompactPanelTexture(item, config.accent);
-        addPanel(group, config, item, angle, { texture: tex });
+        addCurvedPanel(group, config, item, slotAngle(i), { texture: tex });
     });
 
     if (config.screen && screenImg) {
@@ -534,8 +548,8 @@ function createRing(config, y, index, screenImg) {
             tag: '// SCREEN',
             body: config.screen.caption,
         };
-        const screenTex = makeScreenTexture(screenImg, config.accent, config.screen.title);
-        addPanel(group, config, screenItem, Math.PI * 0.5, {
+        const screenTex = makeScreenTexture(screenImg);
+        addCurvedPanel(group, config, screenItem, slotAngle(SCREEN_SLOT), {
             isScreen: true,
             texture: screenTex,
         });
@@ -600,13 +614,13 @@ function showFocusCard(item, accent) {
     if (isScreen) {
         focusText.hidden = true;
         focusFigure.hidden = false;
-        focusScreenTag.textContent = item.tag || '// SCREEN';
-        focusScreenTag.style.color = color;
+        focusScreenTag.hidden = true;
+        focusScreenCaption.hidden = true;
         focusImage.src = item.image;
         focusImage.alt = item.title || 'NOVA-X AIR screenshot';
-        focusScreenCaption.textContent = item.caption || item.body || '';
-        focusScreenCaption.style.color = 'rgba(255,255,255,0.62)';
     } else {
+        focusScreenTag.hidden = false;
+        focusScreenCaption.hidden = false;
         focusText.hidden = false;
         focusFigure.hidden = true;
         focusEls.tag.textContent = item.tag || '';
@@ -642,6 +656,8 @@ function hideFocusCard() {
     focusCard.classList.remove('focus-card--screen');
     focusText.hidden = false;
     focusFigure.hidden = true;
+    focusScreenTag.hidden = false;
+    focusScreenCaption.hidden = false;
 }
 
 function clearFocus() {
@@ -764,22 +780,16 @@ function animate() {
         const targetPop = isActive ? 1 : 0;
         panel.userData.pop += (targetPop - panel.userData.pop) * 0.09;
 
-        const home = panel.userData.home;
-        const outward = home.clone().normalize();
-        const popDist = (panel.userData.isScreen ? 1.18 : 1.05) * panel.userData.pop;
-        panel.position.set(
-            home.x + outward.x * popDist,
-            home.y + Math.sin(t * 2 + panel.id) * 0.015 * panel.userData.pop,
-            home.z + outward.z * popDist
-        );
-
-        const scale = 1 + panel.userData.pop * (panel.userData.isScreen ? 0.52 : 0.42);
+        const popLift = panel.userData.isScreen ? 0.16 : 0.11;
+        const popScale = panel.userData.isScreen ? 0.34 : 0.42;
+        panel.position.z = panel.userData.pop * popLift;
+        const scale = 1 + panel.userData.pop * popScale;
         panel.scale.set(scale, scale, scale);
 
         if (panel.material.map) {
-            if (isActive) panel.material.opacity = 1;
-            else if (activePanel) panel.material.opacity = 0.62;
-            else panel.material.opacity = panel.userData.isScreen ? 0.96 : 0.9;
+            if (isActive) panel.material.opacity = panel.userData.isScreen ? 0.95 : 1;
+            else if (activePanel) panel.material.opacity = panel.userData.isScreen ? 0.5 : 0.62;
+            else panel.material.opacity = panel.userData.isScreen ? 0.88 : 0.9;
         }
     });
 
