@@ -609,17 +609,17 @@ function syncScrollFromPage() {
     scrollTarget = THREE.MathUtils.clamp(y / max, 0, 1);
 
     const gapTop = cylinderGap?.offsetTop ?? max;
-    const fadeStart = Math.max(0, max - innerHeight * 1.05);
+    const fadeStart = Math.max(0, max - innerHeight * 0.85);
     let fade = 1;
-    if (y >= gapTop - innerHeight * 0.15) {
+    if (y >= gapTop) {
         fade = 0;
     } else if (y > fadeStart) {
-        fade = Math.max(0, 1 - (y - fadeStart) / (gapTop - fadeStart - innerHeight * 0.15));
+        fade = Math.max(0, 1 - (y - fadeStart) / (gapTop - fadeStart));
     }
     canvas.style.opacity = String(fade);
     canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
 
-    document.body.classList.toggle('past-cylinder', y >= gapTop - innerHeight * 0.1);
+    document.body.classList.toggle('past-cylinder', y >= gapTop - innerHeight * 0.05);
 
     const atEnd = y >= (document.getElementById('site-end')?.offsetTop ?? gapTop) - innerHeight * 0.5;
     document.body.classList.toggle('at-site-end', atEnd);
