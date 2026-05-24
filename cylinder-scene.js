@@ -192,11 +192,13 @@ function createRing(config, y, index) {
     const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 72, 1, true);
     const ringMat = new THREE.MeshStandardMaterial({
         color: config.ringColor,
+        emissive: config.accent,
+        emissiveIntensity: 0.08,
         metalness: 0.35,
         roughness: 0.55,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.94,
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.y = Math.PI * 0.5;
@@ -204,7 +206,7 @@ function createRing(config, y, index) {
     group.add(ringMesh);
 
     const edgeGeo = new THREE.TorusGeometry(RING_RADIUS, 0.028, 8, 96);
-    const edgeMat = new THREE.MeshBasicMaterial({ color: config.accent, transparent: true, opacity: 0.55 });
+    const edgeMat = new THREE.MeshBasicMaterial({ color: config.accent, transparent: true, opacity: 0.82 });
     const topEdge = new THREE.Mesh(edgeGeo, edgeMat);
     topEdge.rotation.x = Math.PI / 2;
     topEdge.position.y = RING_HEIGHT * 0.48;
