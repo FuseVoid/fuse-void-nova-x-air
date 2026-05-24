@@ -509,9 +509,9 @@ function addCurvedPanel(group, config, item, angle, options = {}) {
     return panel;
 }
 
-function textItemIndexForSlot(slot) {
+function textItemIndexForSlot(slot, itemCount) {
     if (slot < SCREEN_SLOT) return slot;
-    return (slot - SCREEN_SLOT - 1) % 4;
+    return (slot - SCREEN_SLOT - 1) % itemCount;
 }
 
 function createRing(config, y, index, screenImg) {
@@ -578,7 +578,7 @@ function createRing(config, y, index, screenImg) {
             continue;
         }
 
-        const item = config.items[textItemIndexForSlot(slot)];
+        const item = config.items[textItemIndexForSlot(slot, config.items.length)];
         const tex = makeCompactPanelTexture(item, config.accent);
         addCurvedPanel(group, config, item, angle, { texture: tex });
     }
