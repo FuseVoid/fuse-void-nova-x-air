@@ -289,22 +289,26 @@ const focusEls = {
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setClearColor(0x050505, 1);
+renderer.setClearColor(0x020408, 1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x050505, 16, 48);
+scene.background = new THREE.Color(0x020408);
+scene.fog = new THREE.FogExp2(0x03050c, 0.022);
 
-const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
 camera.position.set(0, 2.5, 11.5);
 camera.lookAt(0, 0, 0);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.78));
-const key = new THREE.DirectionalLight(0xffffff, 1.15);
-key.position.set(4, 8, 10);
-scene.add(key);
-const rim = new THREE.DirectionalLight(0x88aaff, 0.4);
-rim.position.set(-6, -2, -4);
-scene.add(rim);
+scene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.35));
+scene.add(new THREE.AmbientLight(0x0c1424, 0.22));
+const sunLight = new THREE.DirectionalLight(0xffb070, 1.35);
+sunLight.position.set(9, 6, 7);
+scene.add(sunLight);
+const coldLight = new THREE.DirectionalLight(0x4a6a9a, 0.38);
+coldLight.position.set(-7, -1, -5);
+scene.add(coldLight);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -320,193 +324,103 @@ let isDragging = false;
 let dragLastX = 0;
 let dragOriginX = 0;
 let dragRing = null;
+let sceneFade = 1;
 
-const _dustWorld = new THREE.Vector3();
-const _dustCamRight = new THREE.Vector3();
-const _dustCamUp = new THREE.Vector3();
+function createRockGeometry(size) {
+    const jitter = () => 0.55 + Math.random() * 0.85;
+    const corners = [
+        [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+        [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
+    ].flatMap(([x, y, z]) => [x * jitter() * size, y * jitter() * size, z * jitter() * size]);
 
-function makeDustSpriteTexture() {
-    const size = 128;
-    const c = document.createElement('canvas');
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext('2d');
-    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.12, 'rgba(248,252,255,0.92)');
-    g.addColorStop(0.32, 'rgba(210,230,255,0.55)');
-    g.addColorStop(0.58, 'rgba(165,200,255,0.22)');
-    g.addColorStop(1, 'rgba(120,170,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
-    return tex;
+    const indices = [
+        0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6,
+        0, 4, 5, 0, 5, 1, 2, 6, 7, 2, 7, 3,
+        0, 7, 4, 0, 3, 7, 1, 5, 6, 1, 6, 2,
+    ];
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(corners, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
 }
 
-function buildDustWomanParticles() {
-    const particles = [];
-    const push = (bx, by, bz, edge = 0) => {
-        particles.push({
-            bx,
-            by,
-            bz,
-            phase: Math.random() * Math.PI * 2,
-            edge,
-            ox: 0,
-            oy: 0,
-            oz: 0,
-        });
+const rockMaterial = new THREE.MeshStandardMaterial({
+    color: 0x060608,
+    emissive: 0x000000,
+    metalness: 0.04,
+    roughness: 0.94,
+    flatShading: true,
+});
+
+function createFloatingRock() {
+    const size = 0.14 + Math.random() * 0.42;
+    const mesh = new THREE.Mesh(createRockGeometry(size), rockMaterial);
+    const stackTop = RING_HEIGHT * 0.55 + 1.2;
+    const stackBottom = -(RINGS.length - 1) * RING_GAP - 1.1;
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 2.2 + Math.random() * 5.8;
+    mesh.position.set(
+        Math.cos(angle) * radius,
+        stackBottom + Math.random() * (stackTop - stackBottom),
+        Math.sin(angle) * radius,
+    );
+    mesh.rotation.set(
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+    );
+    mesh.userData = {
+        drift: (Math.random() > 0.5 ? 1 : -1) * (0.08 + Math.random() * 0.16),
+        swayAmp: 0.04 + Math.random() * 0.12,
+        swayPh: Math.random() * Math.PI * 2,
+        rotVX: (Math.random() - 0.5) * 0.35,
+        rotVY: (Math.random() - 0.5) * 0.42,
+        rotVZ: (Math.random() - 0.5) * 0.28,
+        baseY: mesh.position.y,
+        orbitR: radius,
+        orbitA: angle,
+        orbitSpeed: (Math.random() - 0.5) * 0.06,
     };
-
-    const sampleEllipsoid = (cx, cy, cz, rx, ry, rz, count) => {
-        let placed = 0;
-        while (placed < count) {
-            const u = Math.random() * 2 - 1;
-            const v = Math.random() * 2 - 1;
-            const w = Math.random() * 2 - 1;
-            if (u * u + v * v + w * w > 1) continue;
-            const bx = cx + u * rx;
-            const by = cy + v * ry;
-            const bz = cz + w * rz;
-            const edge = Math.sqrt((u * u + w * w) / Math.max(rx * rx + rz * rz, 0.0001));
-            push(bx, by, bz, edge);
-            placed += 1;
-        }
-    };
-
-    const sampleCapsule = (x1, y1, z1, x2, y2, z2, radius, count) => {
-        for (let i = 0; i < count; i += 1) {
-            const t = Math.random();
-            const px = x1 + (x2 - x1) * t;
-            const py = y1 + (y2 - y1) * t;
-            const pz = z1 + (z2 - z1) * t;
-            const jitter = radius * Math.cbrt(Math.random());
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const jx = Math.sin(phi) * Math.cos(theta) * jitter;
-            const jz = Math.sin(phi) * Math.sin(theta) * jitter;
-            push(px + jx, py + Math.cos(phi) * jitter, pz + jz, jitter / radius);
-        }
-    };
-
-    const topY = RING_HEIGHT * 0.55 + 0.85;
-    const bottomY = -(RINGS.length - 1) * RING_GAP - RING_HEIGHT * 0.62;
-    const span = topY - bottomY;
-    const yAt = (t) => topY - t * span;
-
-    const bodyRadiusAt = (t) => {
-        if (t < 0.045) return 0.09 + t * 0.6;
-        if (t < 0.11) return 0.075;
-        if (t < 0.24) return 0.13 - (t - 0.11) * 0.22;
-        if (t < 0.33) return 0.098;
-        if (t < 0.44) return 0.098 + (t - 0.33) * 0.75;
-        if (t < 0.58) return 0.16;
-        if (t < 0.78) return 0.13 - (t - 0.58) * 0.18;
-        return 0.08 - (t - 0.78) * 0.22;
-    };
-
-    for (let i = 0; i < 3200; i += 1) {
-        const t = 0.015 + Math.random() * 0.94;
-        const R = bodyRadiusAt(t);
-        const r = R * Math.cbrt(Math.random());
-        const ang = Math.random() * Math.PI * 2;
-        const bx = Math.cos(ang) * r;
-        const bz = Math.sin(ang) * r * 0.55;
-        push(bx, yAt(t) + (Math.random() - 0.5) * 0.06, bz, r / Math.max(R, 0.001));
-    }
-
-    sampleEllipsoid(0, yAt(0.018), 0, 0.09, 0.11, 0.07, 220);
-    sampleEllipsoid(0, yAt(0.004), 0, 0.11, 0.09, 0.09, 160);
-
-    const armX = 0.10;
-    const shoulderY = yAt(0.135);
-    const handY = yAt(-0.09);
-    sampleCapsule(-armX, shoulderY, 0, -armX, handY, 0, 0.048, 280);
-    sampleCapsule(armX, shoulderY, 0, armX, handY, 0, 0.048, 280);
-    sampleEllipsoid(-armX, handY - 0.08, 0, 0.05, 0.07, 0.04, 70);
-    sampleEllipsoid(armX, handY - 0.08, 0, 0.05, 0.07, 0.04, 70);
-
-    for (let i = 0; i < 600; i += 1) {
-        const t = 0.44 + Math.random() * 0.54;
-        const R = bodyRadiusAt(t) * 0.92;
-        const r = R * Math.cbrt(Math.random());
-        const ang = Math.random() * Math.PI * 2;
-        push(Math.cos(ang) * r, yAt(t), Math.sin(ang) * r * 0.5, 0.85);
-    }
-
-    return particles;
+    return mesh;
 }
 
-const dustSpriteTex = makeDustSpriteTexture();
-const dustWomanParticles = buildDustWomanParticles();
-const dustWomanPositions = new Float32Array(dustWomanParticles.length * 3);
-const dustWomanSizes = new Float32Array(dustWomanParticles.length);
-dustWomanParticles.forEach((p, i) => {
-    dustWomanPositions[i * 3] = p.bx;
-    dustWomanPositions[i * 3 + 1] = p.by;
-    dustWomanPositions[i * 3 + 2] = p.bz;
-    dustWomanSizes[i] = 0.08 + Math.random() * 0.07;
-});
+const floatingRocks = new THREE.Group();
+const rockCount = innerWidth < 768 ? 14 : 22;
+for (let i = 0; i < rockCount; i += 1) {
+    floatingRocks.add(createFloatingRock());
+}
+scene.add(floatingRocks);
 
-const dustWomanGeom = new THREE.BufferGeometry();
-dustWomanGeom.setAttribute('position', new THREE.BufferAttribute(dustWomanPositions, 3));
-dustWomanGeom.setAttribute('size', new THREE.BufferAttribute(dustWomanSizes, 1));
+function createStarfield(count) {
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i += 1) {
+        const r = 28 + Math.random() * 52;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+        color: 0xd8e8ff,
+        size: 0.055,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+    });
+    const stars = new THREE.Points(geo, mat);
+    stars.renderOrder = -2;
+    return stars;
+}
 
-const dustWomanMat = new THREE.ShaderMaterial({
-    uniforms: {
-        uMap: { value: dustSpriteTex },
-        uOpacity: { value: 1 },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-    },
-    vertexShader: `
-        attribute float size;
-        uniform float uPixelRatio;
-        varying float vAlpha;
-        void main() {
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            gl_Position = projectionMatrix * mv;
-            gl_PointSize = size * uPixelRatio * (280.0 / -mv.z);
-            vAlpha = 0.82 + size * 2.2;
-        }
-    `,
-    fragmentShader: `
-        uniform sampler2D uMap;
-        uniform float uOpacity;
-        varying float vAlpha;
-        void main() {
-            vec4 tex = texture2D(uMap, gl_PointCoord);
-            float a = tex.a * vAlpha * uOpacity;
-            if (a < 0.004) discard;
-            gl_FragColor = vec4(tex.rgb, a);
-        }
-    `,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-});
-
-const dustWoman = new THREE.Points(dustWomanGeom, dustWomanMat);
-dustWoman.renderOrder = 6;
-scene.add(dustWoman);
-
-const dustWomanHaloMat = new THREE.PointsMaterial({
-    map: dustSpriteTex,
-    color: 0xc8e4ff,
-    size: 0.2,
-    transparent: true,
-    opacity: 0.28,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    sizeAttenuation: true,
-});
-const dustWomanHalo = new THREE.Points(dustWomanGeom, dustWomanHaloMat);
-dustWomanHalo.renderOrder = 5;
-scene.add(dustWomanHalo);
-
-let dustWomanAlpha = 1;
-let dustMouseX = innerWidth * 0.5;
-let dustMouseY = innerHeight * 0.5;
+const starfield = createStarfield(innerWidth < 768 ? 1400 : 2600);
+scene.add(starfield);
 
 function wrapTextLines(ctx, text, maxWidth) {
     const words = text.split(' ');
@@ -808,7 +722,7 @@ function syncScrollFromPage() {
 
     canvas.style.opacity = String(fade);
     canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
-    dustWomanAlpha = fade;
+    sceneFade = fade;
 
     document.body.classList.toggle('past-cylinder', y >= gapTop + gapHeight);
 
@@ -988,8 +902,6 @@ function onPointerUp(e) {
 }
 
 function onPointerMove(e) {
-    dustMouseX = e.clientX;
-    dustMouseY = e.clientY;
     if (!isDragging) return;
     const dx = e.clientX - dragLastX;
     if (dragRing) applyRingDrag(dragRing, dx);
@@ -1008,7 +920,6 @@ function resize() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-    dustWomanMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -1053,49 +964,18 @@ function animate() {
         }
     });
 
-    const posAttr = dustWomanGeom.attributes.position;
-    const sway = t * 0.45;
-    _dustCamRight.setFromMatrixColumn(camera.matrixWorld, 0);
-    _dustCamUp.setFromMatrixColumn(camera.matrixWorld, 1);
-
-    dustWomanParticles.forEach((p, i) => {
-        const edgeDrift = 0.006 + p.edge * 0.022;
-        let x = p.bx + Math.sin(sway * 1.1 + p.phase) * edgeDrift;
-        let y = p.by + Math.sin(sway * 0.55 + p.phase) * edgeDrift * 0.65;
-        let z = p.bz + Math.cos(sway * 0.9 + p.phase) * edgeDrift * 0.5;
-
-        _dustWorld.set(x, y, z).project(camera);
-        const sx = (_dustWorld.x * 0.5 + 0.5) * innerWidth;
-        const sy = (-_dustWorld.y * 0.5 + 0.5) * innerHeight;
-        const mdx = sx - dustMouseX;
-        const mdy = sy - dustMouseY;
-        const dist = Math.hypot(mdx, mdy);
-
-        let targetOx = 0;
-        let targetOy = 0;
-        let targetOz = 0;
-        if (dist < 140 && dist > 0 && dustWomanAlpha > 0.08) {
-            const force = (1 - dist / 140) * 0.88;
-            const push = force * (0.38 + p.edge * 0.22);
-            targetOx = _dustCamRight.x * (mdx / dist) * push + _dustCamUp.x * (-mdy / dist) * push;
-            targetOy = _dustCamRight.y * (mdx / dist) * push + _dustCamUp.y * (-mdy / dist) * push;
-            targetOz = _dustCamRight.z * (mdx / dist) * push + _dustCamUp.z * (-mdy / dist) * push;
-        }
-
-        p.ox += (targetOx - p.ox) * 0.11;
-        p.oy += (targetOy - p.oy) * 0.11;
-        p.oz += (targetOz - p.oz) * 0.11;
-
-        posAttr.array[i * 3] = x + p.ox;
-        posAttr.array[i * 3 + 1] = y + p.oy;
-        posAttr.array[i * 3 + 2] = z + p.oz;
+    floatingRocks.children.forEach((rock) => {
+        const d = rock.userData;
+        d.orbitA += d.orbitSpeed * delta;
+        rock.position.x = Math.cos(d.orbitA) * d.orbitR + Math.sin(t * 0.11 + d.swayPh) * d.swayAmp;
+        rock.position.z = Math.sin(d.orbitA) * d.orbitR + Math.cos(t * 0.09 + d.swayPh) * d.swayAmp * 0.6;
+        rock.position.y = d.baseY + Math.sin(t * 0.13 + d.swayPh) * d.swayAmp * 0.45;
+        rock.rotation.x += d.rotVX * delta;
+        rock.rotation.y += d.rotVY * delta;
+        rock.rotation.z += d.rotVZ * delta;
     });
-    posAttr.needsUpdate = true;
-
-    dustWomanMat.uniforms.uOpacity.value = dustWomanAlpha;
-    dustWomanHaloMat.opacity = 0.32 * dustWomanAlpha;
-    dustWoman.visible = dustWomanAlpha > 0.03;
-    dustWomanHalo.visible = dustWoman.visible;
+    floatingRocks.visible = sceneFade > 0.03;
+    starfield.material.opacity = 0.55 * sceneFade;
 
     renderer.render(scene, camera);
 }
