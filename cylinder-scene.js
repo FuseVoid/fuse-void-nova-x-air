@@ -321,16 +321,53 @@ let dragLastX = 0;
 let dragOriginX = 0;
 let dragRing = null;
 
+const _dustWorld = new THREE.Vector3();
+const _dustCamRight = new THREE.Vector3();
+const _dustCamUp = new THREE.Vector3();
+
 function buildDustWomanParticles() {
     const particles = [];
-    const add = (cy, rx, ry, rz, count, cx = 0, cz = 0) => {
-        for (let i = 0; i < count; i += 1) {
+    const sampleEllipsoid = (cx, cy, cz, rx, ry, rz, count) => {
+        let placed = 0;
+        while (placed < count) {
+            const u = Math.random() * 2 - 1;
+            const v = Math.random() * 2 - 1;
+            const w = Math.random() * 2 - 1;
+            if (u * u + v * v + w * w > 1) continue;
             particles.push({
-                bx: cx + (Math.random() - 0.5) * rx * 2,
-                by: cy + (Math.random() - 0.5) * ry * 2,
-                bz: cz + (Math.random() - 0.5) * rz * 2,
+                bx: cx + u * rx,
+                by: cy + v * ry,
+                bz: cz + w * rz,
                 phase: Math.random() * Math.PI * 2,
-                tw: 0.65 + Math.random() * 0.55,
+                ox: 0,
+                oy: 0,
+                oz: 0,
+            });
+            placed += 1;
+        }
+    };
+
+    const sampleCapsule = (x1, y1, z1, x2, y2, z2, radius, count) => {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const dz = z2 - z1;
+        const len = Math.hypot(dx, dy, dz) || 1;
+        for (let i = 0; i < count; i += 1) {
+            const t = Math.random();
+            const px = x1 + dx * t;
+            const py = y1 + dy * t;
+            const pz = z1 + dz * t;
+            const jitter = radius * Math.cbrt(Math.random());
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            particles.push({
+                bx: px + Math.sin(phi) * Math.cos(theta) * jitter,
+                by: py + Math.cos(phi) * jitter,
+                bz: pz + Math.sin(phi) * Math.sin(theta) * jitter,
+                phase: Math.random() * Math.PI * 2,
+                ox: 0,
+                oy: 0,
+                oz: 0,
             });
         }
     };
@@ -340,23 +377,35 @@ function buildDustWomanParticles() {
     const span = topY - bottomY;
     const yAt = (t) => topY - t * span;
 
-    add(yAt(0.02), 0.11, 0.13, 0.09, 52);
-    add(yAt(0.01), 0.15, 0.11, 0.12, 38, 0, -0.02);
-    add(yAt(0.07), 0.06, 0.07, 0.05, 18);
-    add(yAt(0.12), 0.24, 0.19, 0.12, 88);
-    add(yAt(0.19), 0.14, 0.16, 0.10, 62);
-    add(yAt(0.27), 0.30, 0.17, 0.14, 96);
-    add(yAt(0.16), 0.08, 0.34, 0.07, 42, -0.30, 0);
-    add(yAt(0.16), 0.08, 0.34, 0.07, 42, 0.30, 0);
-    add(yAt(0.36), 0.11, 0.42, 0.08, 48, -0.15, 0);
-    add(yAt(0.36), 0.11, 0.42, 0.08, 48, 0.15, 0);
-    add(yAt(0.52), 0.09, 0.38, 0.07, 44, -0.13, 0);
-    add(yAt(0.52), 0.09, 0.38, 0.07, 44, 0.13, 0);
-    add(yAt(0.68), 0.08, 0.34, 0.06, 38, -0.12, 0);
-    add(yAt(0.68), 0.08, 0.34, 0.06, 38, 0.12, 0);
-    add(yAt(0.84), 0.07, 0.22, 0.06, 30, -0.11, 0.04);
-    add(yAt(0.84), 0.07, 0.22, 0.06, 30, 0.11, 0.04);
-    add(yAt(0.95), 0.10, 0.08, 0.12, 34);
+    sampleEllipsoid(0, yAt(0.02), 0, 0.12, 0.14, 0.10, 120);
+    sampleEllipsoid(0, yAt(0.005), 0, 0.16, 0.12, 0.13, 90);
+    sampleEllipsoid(0, yAt(0.07), 0, 0.07, 0.08, 0.06, 55);
+
+    for (let t = 0.10; t <= 0.30; t += 0.025) {
+        const waist = t < 0.22 ? 0.26 - (t - 0.10) * 0.35 : 0.22 + (t - 0.22) * 1.1;
+        sampleEllipsoid(0, yAt(t), 0, waist, 0.11, 0.11, 95);
+    }
+
+    const lShoulder = { x: -0.26, y: yAt(0.13), z: 0 };
+    const rShoulder = { x: 0.26, y: yAt(0.13), z: 0 };
+    const lHand = { x: -0.40, y: yAt(-0.03), z: 0.04 };
+    const rHand = { x: 0.40, y: yAt(-0.03), z: 0.04 };
+
+    sampleCapsule(lShoulder.x, lShoulder.y, lShoulder.z, lHand.x, lHand.y, lHand.z, 0.075, 140);
+    sampleCapsule(rShoulder.x, rShoulder.y, rShoulder.z, rHand.x, rHand.y, rHand.z, 0.075, 140);
+    sampleCapsule(lHand.x, lHand.y, lHand.z, -0.36, yAt(-0.07), 0.05, 0.055, 70);
+    sampleCapsule(rHand.x, rHand.y, rHand.z, 0.36, yAt(-0.07), 0.05, 0.055, 70);
+    sampleEllipsoid(-0.40, yAt(-0.04), 0.04, 0.07, 0.08, 0.06, 45);
+    sampleEllipsoid(0.40, yAt(-0.04), 0.04, 0.07, 0.08, 0.06, 45);
+
+    sampleCapsule(-0.14, yAt(0.30), 0, -0.13, yAt(0.52), 0, 0.10, 130);
+    sampleCapsule(0.14, yAt(0.30), 0, 0.13, yAt(0.52), 0, 0.10, 130);
+    sampleCapsule(-0.13, yAt(0.52), 0, -0.12, yAt(0.72), 0.02, 0.085, 115);
+    sampleCapsule(0.13, yAt(0.52), 0, 0.12, yAt(0.72), 0.02, 0.085, 115);
+    sampleCapsule(-0.12, yAt(0.72), 0.02, -0.11, yAt(0.90), 0.04, 0.075, 95);
+    sampleCapsule(0.12, yAt(0.72), 0.02, 0.11, yAt(0.90), 0.04, 0.075, 95);
+    sampleEllipsoid(0, yAt(0.97), 0.03, 0.11, 0.06, 0.13, 80);
+
     return particles;
 }
 
@@ -372,10 +421,10 @@ const dustWomanGeom = new THREE.BufferGeometry();
 dustWomanGeom.setAttribute('position', new THREE.BufferAttribute(dustWomanPositions, 3));
 
 const dustWomanMat = new THREE.PointsMaterial({
-    color: 0xe6daf8,
-    size: 0.065,
+    color: 0xdce8ff,
+    size: 0.038,
     transparent: true,
-    opacity: 0.74,
+    opacity: 0.88,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
@@ -386,10 +435,10 @@ dustWoman.renderOrder = 6;
 scene.add(dustWoman);
 
 const dustWomanGlowMat = new THREE.PointsMaterial({
-    color: 0xf4eeff,
-    size: 0.12,
+    color: 0xf2ecff,
+    size: 0.078,
     transparent: true,
-    opacity: 0.22,
+    opacity: 0.42,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
@@ -398,7 +447,22 @@ const dustWomanGlow = new THREE.Points(dustWomanGeom, dustWomanGlowMat);
 dustWomanGlow.renderOrder = 5;
 scene.add(dustWomanGlow);
 
+const dustWomanHaloMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.13,
+    transparent: true,
+    opacity: 0.14,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+});
+const dustWomanHalo = new THREE.Points(dustWomanGeom, dustWomanHaloMat);
+dustWomanHalo.renderOrder = 4;
+scene.add(dustWomanHalo);
+
 let dustWomanAlpha = 1;
+let dustMouseX = innerWidth * 0.5;
+let dustMouseY = innerHeight * 0.5;
 
 function wrapTextLines(ctx, text, maxWidth) {
     const words = text.split(' ');
@@ -880,6 +944,8 @@ function onPointerUp(e) {
 }
 
 function onPointerMove(e) {
+    dustMouseX = e.clientX;
+    dustMouseY = e.clientY;
     if (!isDragging) return;
     const dx = e.clientX - dragLastX;
     if (dragRing) applyRingDrag(dragRing, dx);
@@ -947,24 +1013,52 @@ function animate() {
     const spin = t * 0.11;
     const cosY = Math.cos(spin);
     const sinY = Math.sin(spin);
+    _dustCamRight.setFromMatrixColumn(camera.matrixWorld, 0);
+    _dustCamUp.setFromMatrixColumn(camera.matrixWorld, 1);
+
     dustWomanParticles.forEach((p, i) => {
         let x = p.bx;
-        let y = p.by + Math.sin(sway * 0.65 + p.phase) * 0.018;
+        let y = p.by + Math.sin(sway * 0.65 + p.phase) * 0.012;
         let z = p.bz;
         const rx = x * cosY - z * sinY;
         const rz = x * sinY + z * cosY;
-        x = rx + Math.sin(sway + p.phase) * 0.014;
+        x = rx + Math.sin(sway + p.phase) * 0.01;
         z = rz;
-        posAttr.array[i * 3] = x;
-        posAttr.array[i * 3 + 1] = y;
-        posAttr.array[i * 3 + 2] = z;
+
+        _dustWorld.set(x, y, z).project(camera);
+        const sx = (_dustWorld.x * 0.5 + 0.5) * innerWidth;
+        const sy = (-_dustWorld.y * 0.5 + 0.5) * innerHeight;
+        const mdx = sx - dustMouseX;
+        const mdy = sy - dustMouseY;
+        const dist = Math.hypot(mdx, mdy);
+
+        let targetOx = 0;
+        let targetOy = 0;
+        let targetOz = 0;
+        if (dist < 130 && dist > 0 && dustWomanAlpha > 0.08) {
+            const force = (1 - dist / 130) * 0.85;
+            const push = force * 0.34;
+            targetOx = _dustCamRight.x * (mdx / dist) * push + _dustCamUp.x * (-mdy / dist) * push;
+            targetOy = _dustCamRight.y * (mdx / dist) * push + _dustCamUp.y * (-mdy / dist) * push;
+            targetOz = _dustCamRight.z * (mdx / dist) * push + _dustCamUp.z * (-mdy / dist) * push;
+        }
+
+        p.ox += (targetOx - p.ox) * 0.12;
+        p.oy += (targetOy - p.oy) * 0.12;
+        p.oz += (targetOz - p.oz) * 0.12;
+
+        posAttr.array[i * 3] = x + p.ox;
+        posAttr.array[i * 3 + 1] = y + p.oy;
+        posAttr.array[i * 3 + 2] = z + p.oz;
     });
     posAttr.needsUpdate = true;
 
-    dustWomanMat.opacity = 0.74 * dustWomanAlpha;
-    dustWomanGlowMat.opacity = 0.22 * dustWomanAlpha;
+    dustWomanMat.opacity = 0.88 * dustWomanAlpha;
+    dustWomanGlowMat.opacity = 0.42 * dustWomanAlpha;
+    dustWomanHaloMat.opacity = 0.14 * dustWomanAlpha;
     dustWoman.visible = dustWomanAlpha > 0.03;
     dustWomanGlow.visible = dustWoman.visible;
+    dustWomanHalo.visible = dustWoman.visible;
 
     renderer.render(scene, camera);
 }
