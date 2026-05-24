@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuse Void NOVA-X AIR</title>
+    <meta name="description" content="NOVA-X AIR — Launchpad MK3 control surface and sequencer for iOS.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <header class="site-header">
+        <span class="site-header__logo">Fuse Void</span>
+        <span class="site-header__tag">NOVA-X AIR</span>
+    </header>
+
+    <div class="scroll-spacer" id="scroll-spacer"></div>
+    <canvas id="scene-canvas" aria-hidden="true"></canvas>
+
+    <aside class="hint hint--left">
+        <span class="hint__circle">↻</span>
+        <span class="hint__text">Click a label<br>to focus</span>
+    </aside>
+    <aside class="hint hint--right">
+        <span class="hint__circle">↓</span>
+        <span class="hint__text">Scroll to explore<br>more rings</span>
+    </aside>
+
+    <footer class="scroll-progress">
+        <div class="scroll-progress__bar" id="scroll-bar"></div>
+    </footer>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="cylinder-scene.js"></script>
+</body>
+</html>
