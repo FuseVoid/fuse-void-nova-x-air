@@ -57,6 +57,14 @@ body.has-focus #scene-canvas {
     pointer-events: none;
 }
 
+.cylinder-gap {
+    position: relative;
+    z-index: 5;
+    height: clamp(28rem, 68vh, 40rem);
+    background: var(--bg);
+    pointer-events: none;
+}
+
 .site-header {
     position: fixed;
     top: 1.75rem;
