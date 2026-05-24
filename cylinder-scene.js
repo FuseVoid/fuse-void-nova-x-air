@@ -336,9 +336,9 @@ function makeStarSpriteTexture() {
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.08, 'rgba(255,252,248,0.85)');
-    g.addColorStop(0.22, 'rgba(220,230,255,0.35)');
-    g.addColorStop(0.5, 'rgba(180,200,255,0.08)');
+    g.addColorStop(0.035, 'rgba(255,252,248,0.82)');
+    g.addColorStop(0.1, 'rgba(220,230,255,0.22)');
+    g.addColorStop(0.28, 'rgba(180,200,255,0.05)');
     g.addColorStop(1, 'rgba(120,160,255,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -358,7 +358,7 @@ const _bhWorld = new THREE.Vector3();
 const BLACK_HOLE = {
     radius: 2.4,
     swallowRadius: 3.1,
-    pullStrength: 34,
+    pullStrength: 10,
 };
 
 function starColor(spectral, brightness) {
@@ -492,11 +492,11 @@ function buildStarfield() {
 
     const mat = new THREE.PointsMaterial({
         map: starSpriteTex,
-        size: innerWidth < 768 ? 2.1 : 2.6,
+        size: innerWidth < 768 ? 1.15 : 1.45,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.78,
         depthWrite: false,
         depthTest: true,
         fog: false,
@@ -546,11 +546,11 @@ function buildStarfield() {
     bGeo.setAttribute('color', new THREE.BufferAttribute(bCol.slice(0, bIdx * 3), 3));
     const bMat = new THREE.PointsMaterial({
         map: starSpriteTex,
-        size: innerWidth < 768 ? 5.5 : 6.8,
+        size: innerWidth < 768 ? 2.8 : 3.6,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
-        opacity: 1,
+        opacity: 0.92,
         depthWrite: false,
         depthTest: true,
         fog: false,
@@ -649,7 +649,7 @@ function updateStarPositions(geo, startIdx, count, delta) {
         if (sDist < BLACK_HOLE.swallowRadius) {
             respawnStarParticle(p);
         } else {
-            const pull = (BLACK_HOLE.pullStrength / (sDist * sDist + 6)) * delta * 60;
+            const pull = (BLACK_HOLE.pullStrength / (sDist * sDist + 18)) * delta * 42;
             p.bx += (sdx / sDist) * pull;
             p.by += (sdy / sDist) * pull;
             p.bz += (sdz / sDist) * pull;
@@ -729,6 +729,13 @@ function createAsteroidMaterial(seed) {
     });
 }
 
+function pickRockSize() {
+    const roll = Math.random();
+    if (roll < 0.68) return 0.09 + Math.random() * 0.2;
+    if (roll < 0.88) return 0.32 + Math.random() * 0.24;
+    return 0.58 + Math.random() * 0.42;
+}
+
 function respawnRock(rock) {
     const stackTop = RING_HEIGHT * 0.55 + 1.2;
     const stackBottom = -(RINGS.length - 1) * RING_GAP - 1.1;
@@ -746,9 +753,10 @@ function respawnRock(rock) {
     rock.visible = true;
 }
 
-function createFloatingRock() {
+function createFloatingRock(forceLarge = false) {
     const seed = Math.random();
-    const size = 0.12 + Math.random() * 0.48;
+    let size = pickRockSize();
+    if (forceLarge) size = 0.62 + Math.random() * 0.38;
     const mesh = new THREE.Mesh(createAsteroidGeometry(size, seed * 40), createAsteroidMaterial(seed));
     const stackTop = RING_HEIGHT * 0.55 + 1.2;
     const stackBottom = -(RINGS.length - 1) * RING_GAP - 1.1;
@@ -765,15 +773,16 @@ function createFloatingRock() {
         Math.random() * Math.PI * 2,
     );
     mesh.userData = {
-        swayAmp: 0.025 + Math.random() * 0.07,
+        swayAmp: 0.018 + Math.random() * 0.045,
         swayPh: Math.random() * Math.PI * 2,
-        rotVX: (Math.random() - 0.5) * 0.22,
-        rotVY: (Math.random() - 0.5) * 0.28,
-        rotVZ: (Math.random() - 0.5) * 0.18,
+        rotVX: (Math.random() - 0.5) * 0.16,
+        rotVY: (Math.random() - 0.5) * 0.2,
+        rotVZ: (Math.random() - 0.5) * 0.14,
         baseY: mesh.position.y,
         orbitR: radius,
         orbitA: angle,
-        orbitSpeed: (Math.random() - 0.5) * 0.035,
+        orbitSpeed: (Math.random() - 0.5) * 0.022,
+        geomSize: size,
     };
     return mesh;
 }
@@ -781,7 +790,7 @@ function createFloatingRock() {
 const floatingRocks = new THREE.Group();
 const rockCount = innerWidth < 768 ? 16 : 24;
 for (let i = 0; i < rockCount; i += 1) {
-    floatingRocks.add(createFloatingRock());
+    floatingRocks.add(createFloatingRock(i % 5 === 0 || i % 7 === 0));
 }
 scene.add(floatingRocks);
 
@@ -1354,9 +1363,9 @@ function animate() {
     floatingRocks.children.forEach((rock) => {
         const d = rock.userData;
         d.orbitA += d.orbitSpeed * delta;
-        rock.position.x += Math.cos(d.orbitA) * d.swayAmp * delta * 0.35;
-        rock.position.z += Math.sin(d.orbitA) * d.swayAmp * delta * 0.28;
-        rock.position.y += Math.sin(t * 0.13 + d.swayPh) * d.swayAmp * delta * 0.18;
+        rock.position.x += Math.cos(d.orbitA) * d.swayAmp * delta * 0.14;
+        rock.position.z += Math.sin(d.orbitA) * d.swayAmp * delta * 0.12;
+        rock.position.y += Math.sin(t * 0.13 + d.swayPh) * d.swayAmp * delta * 0.1;
 
         const dx = bhPos.x - rock.position.x;
         const dy = bhPos.y - rock.position.y;
@@ -1366,13 +1375,13 @@ function animate() {
             respawnRock(rock);
             return;
         }
-        const pull = (BLACK_HOLE.pullStrength * 0.55 / (dist * dist + 8)) * delta * 60;
+        const pull = (BLACK_HOLE.pullStrength * 0.38 / (dist * dist + 20)) * delta * 42;
         rock.position.x += (dx / dist) * pull;
         rock.position.y += (dy / dist) * pull;
         rock.position.z += (dz / dist) * pull;
 
-        const near = THREE.MathUtils.clamp(1 - (dist - BLACK_HOLE.radius) / 14, 0.35, 1);
-        rock.scale.setScalar(near);
+        const approach = THREE.MathUtils.clamp((dist - BLACK_HOLE.swallowRadius) / 12, 0, 1);
+        rock.scale.setScalar(0.9 + approach * 0.1);
         rock.rotation.x += d.rotVX * delta;
         rock.rotation.y += d.rotVY * delta;
         rock.rotation.z += d.rotVZ * delta;
