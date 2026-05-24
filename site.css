@@ -477,6 +477,23 @@ body.has-focus #scene-canvas {
     object-fit: contain;
 }
 
+.focus-card:not(.focus-card--screen) {
+    display: block;
+    width: min(44rem, 94vw);
+    height: auto;
+    max-height: min(84vh, 46rem);
+}
+
+#focus-text {
+    display: block;
+    width: 100%;
+}
+
+#focus-text[hidden],
+#focus-figure[hidden] {
+    display: none !important;
+}
+
 .focus-card__tag {
     font-family: "JetBrains Mono", ui-monospace, monospace;
     font-size: 0.72rem;

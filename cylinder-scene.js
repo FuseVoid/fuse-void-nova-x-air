@@ -283,6 +283,7 @@ const focusEls = {
     statLabel: document.getElementById('focus-stat-label'),
     body: document.getElementById('focus-body'),
     tags: document.getElementById('focus-tags'),
+    rule: document.getElementById('focus-rule'),
 };
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -627,26 +628,26 @@ function pauseRing(group) {
 }
 
 function updatePanelShape(panel, pop) {
-    const { curvedGeo, flatGeo, flatW, height, isScreen } = panel.userData;
-    if (!curvedGeo || !flatGeo) return;
+    const { curvedGeo, flatGeo, isScreen } = panel.userData;
+    if (!curvedGeo) return;
 
-    if (pop > 0.72) {
+    if (panel.geometry !== curvedGeo) {
+        panel.geometry = curvedGeo;
+    }
+
+    if (isScreen && flatGeo && pop > 0.72) {
         if (panel.geometry !== flatGeo) {
             panel.geometry = flatGeo;
         }
-        const lift = isScreen ? 0.42 : 0.34;
-        panel.position.z = lift;
+        panel.position.z = 0.42;
         const s = 1 + (pop - 0.72) * 0.18;
         panel.scale.set(s, s, s);
         return;
     }
 
-    if (panel.geometry !== curvedGeo) {
-        panel.geometry = curvedGeo;
-    }
-    const lift = (isScreen ? 0.05 : 0.035) * pop;
+    const lift = isScreen ? 0.05 * pop : 0.03 * pop;
     panel.position.z = lift;
-    const scale = 1 + pop * (isScreen ? 0.08 : 0.06);
+    const scale = 1 + pop * (isScreen ? 0.08 : 0.05);
     panel.scale.set(scale, scale, scale);
 }
 
@@ -672,8 +673,6 @@ function showFocusCard(item, accent) {
         focusImage.src = item.image;
         focusImage.alt = item.title || 'NOVA-X AIR screenshot';
     } else {
-        focusScreenTag.hidden = false;
-        focusScreenCaption.hidden = false;
         focusText.hidden = false;
         focusFigure.hidden = true;
         focusEls.tag.textContent = item.tag || '';
@@ -685,6 +684,7 @@ function showFocusCard(item, accent) {
         focusEls.stat.hidden = !item.stat;
         focusEls.statLabel.textContent = item.statLabel || '';
         focusEls.statLabel.hidden = !item.statLabel;
+        focusEls.rule.hidden = !item.stat && !item.statLabel;
         focusEls.body.textContent = item.body || '';
         focusEls.tags.innerHTML = '';
         (item.tags || []).forEach((tag) => {
@@ -709,8 +709,7 @@ function hideFocusCard() {
     focusCard.classList.remove('focus-card--screen');
     focusText.hidden = false;
     focusFigure.hidden = true;
-    focusScreenTag.hidden = false;
-    focusScreenCaption.hidden = false;
+    if (focusEls.rule) focusEls.rule.hidden = false;
 }
 
 function clearFocus() {
@@ -830,7 +829,7 @@ function animate() {
 
     clickable.forEach((panel) => {
         const isActive = panel === activePanel;
-        const targetPop = isActive ? 1 : 0;
+        const targetPop = isActive ? (panel.userData.isScreen ? 1 : 0.28) : 0;
         panel.userData.pop += (targetPop - panel.userData.pop) * 0.09;
         updatePanelShape(panel, panel.userData.pop);
 
