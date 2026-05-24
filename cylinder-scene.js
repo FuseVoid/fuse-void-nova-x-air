@@ -608,24 +608,37 @@ function syncScrollFromPage() {
     const y = window.scrollY;
     scrollTarget = THREE.MathUtils.clamp(y / max, 0, 1);
 
-    const gapTop = cylinderGap?.offsetTop ?? max;
-    const fadeStart = Math.max(0, max - innerHeight * 0.85);
+    const gapTop = scrollSpacer.offsetHeight;
+    const gapHeight = Math.max(1, cylinderGap?.offsetHeight ?? innerHeight * 0.5);
+
+    // Keep every ring fully visible; fade only inside the gap buffer after the spacer.
     let fade = 1;
-    if (y >= gapTop) {
+    if (y >= gapTop + gapHeight) {
         fade = 0;
-    } else if (y > fadeStart) {
-        fade = Math.max(0, 1 - (y - fadeStart) / (gapTop - fadeStart));
+    } else if (y > gapTop) {
+        fade = Math.max(0, 1 - (y - gapTop) / gapHeight);
     }
+
     canvas.style.opacity = String(fade);
     canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
 
-    document.body.classList.toggle('past-cylinder', y >= gapTop - innerHeight * 0.05);
+    document.body.classList.toggle('past-cylinder', y >= gapTop + gapHeight);
 
     const atEnd = y >= (document.getElementById('site-end')?.offsetTop ?? gapTop) - innerHeight * 0.5;
     document.body.classList.toggle('at-site-end', atEnd);
 }
 
 window.addEventListener('scroll', syncScrollFromPage, { passive: true });
+
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
+window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+    syncScrollFromPage();
+});
+
 syncScrollFromPage();
 
 function resumeRing(group) {
