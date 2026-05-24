@@ -353,17 +353,18 @@ let starMouseX = innerWidth * 0.5;
 let starMouseY = innerHeight * 0.5;
 const _starProj = new THREE.Vector3();
 
-function addStarSample(x, y, z, brightness, spectral, positions, colors, sizes, twinkle, idx) {
+function addStarSample(x, y, z, brightness, spectral, positions, colors, _sizes, _twinkle, idx) {
     starParticles.push({
         bx: x, by: y, bz: z,
         ox: 0, oy: 0, oz: 0,
         brightness,
+        layer: 'field',
     });
     let col;
-    if (spectral === 'blue') col = new THREE.Color().setHSL(0.58, 0.55, 0.55 + brightness * 0.42);
-    else if (spectral === 'warm') col = new THREE.Color().setHSL(0.09, 0.45, 0.48 + brightness * 0.38);
-    else if (spectral === 'gold') col = new THREE.Color().setHSL(0.12, 0.28, 0.58 + brightness * 0.35);
-    else col = new THREE.Color().setHSL(0.62, 0.08, 0.62 + brightness * 0.4);
+    if (spectral === 'blue') col = new THREE.Color().setHSL(0.58, 0.55, 0.72 + brightness * 0.28);
+    else if (spectral === 'warm') col = new THREE.Color().setHSL(0.09, 0.45, 0.68 + brightness * 0.3);
+    else if (spectral === 'gold') col = new THREE.Color().setHSL(0.12, 0.28, 0.75 + brightness * 0.25);
+    else col = new THREE.Color().setHSL(0.62, 0.08, 0.78 + brightness * 0.22);
 
     positions[idx * 3] = x;
     positions[idx * 3 + 1] = y;
@@ -371,24 +372,20 @@ function addStarSample(x, y, z, brightness, spectral, positions, colors, sizes, 
     colors[idx * 3] = col.r;
     colors[idx * 3 + 1] = col.g;
     colors[idx * 3 + 2] = col.b;
-    sizes[idx] = 2.2 + brightness * 7.5 + (brightness > 0.92 ? 6 : 0);
-    twinkle[idx] = Math.random() * Math.PI * 2;
 }
 
 function buildStarfield() {
-    const count = innerWidth < 768 ? 5200 : 8800;
+    const count = innerWidth < 768 ? 4800 : 8200;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    const twinkle = new Float32Array(count);
     starParticles.length = 0;
 
     const clusters = [
-        { x: -22, y: 14, z: -48, spread: 14 },
-        { x: 28, y: -6, z: -62, spread: 18 },
-        { x: -8, y: -18, z: -55, spread: 11 },
-        { x: 16, y: 22, z: -70, spread: 16 },
-        { x: -34, y: 4, z: -58, spread: 12 },
+        { x: -22, y: 14, z: -55, spread: 14 },
+        { x: 28, y: -6, z: -68, spread: 18 },
+        { x: -8, y: -18, z: -60, spread: 11 },
+        { x: 16, y: 22, z: -75, spread: 16 },
+        { x: -34, y: 4, z: -62, spread: 12 },
     ];
     const clusterStars = Math.floor(count * 0.38);
     let idx = 0;
@@ -404,85 +401,137 @@ function buildStarfield() {
             cl.z + (Math.random() - 0.5) * cl.spread * 0.7,
             brightness,
             spectral,
-            positions, colors, sizes, twinkle, idx,
+            positions, colors, null, null, idx,
         );
         idx += 1;
     }
 
     while (idx < count) {
-        const r = 28 + Math.random() * 62;
+        const r = 22 + Math.random() * 55;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         const x = r * Math.sin(phi) * Math.cos(theta);
         const y = r * Math.sin(phi) * Math.sin(theta) * 0.65;
-        const z = -Math.abs(r * Math.cos(phi)) - 8;
+        const z = -(25 + Math.random() * 55);
         const brightness = Math.pow(Math.random(), 2.8);
         const roll = Math.random();
         const spectral = roll < 0.06 ? 'blue' : roll < 0.14 ? 'warm' : roll < 0.32 ? 'gold' : 'white';
-        addStarSample(x, y, z, brightness, spectral, positions, colors, sizes, twinkle, idx);
+        addStarSample(x, y, z, brightness, spectral, positions, colors, null, null, idx);
         idx += 1;
     }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geo.setAttribute('twinkle', new THREE.BufferAttribute(twinkle, 1));
 
-    const mat = new THREE.ShaderMaterial({
-        uniforms: {
-            uMap: { value: starSpriteTex },
-            uOpacity: { value: 1 },
-            uTime: { value: 0 },
-            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        },
-        vertexShader: `
-            attribute float size;
-            attribute float twinkle;
-            attribute vec3 color;
-            uniform float uPixelRatio;
-            varying vec3 vColor;
-            varying float vTwinkle;
-            void main() {
-                vColor = color;
-                vTwinkle = twinkle;
-                vec4 mv = modelViewMatrix * vec4(position, 1.0);
-                gl_Position = projectionMatrix * mv;
-                float depth = max(-mv.z, 6.0);
-                gl_PointSize = max(2.0, size * uPixelRatio * (420.0 / depth));
-            }
-        `,
-        fragmentShader: `
-            uniform sampler2D uMap;
-            uniform float uOpacity;
-            uniform float uTime;
-            varying vec3 vColor;
-            varying float vTwinkle;
-            void main() {
-                vec4 tex = texture2D(uMap, gl_PointCoord);
-                float pulse = 0.78 + 0.22 * sin(uTime * 1.4 + vTwinkle);
-                float a = tex.a * uOpacity * pulse;
-                if (a < 0.004) discard;
-                gl_FragColor = vec4(vColor * tex.rgb, a);
-            }
-        `,
+    const mat = new THREE.PointsMaterial({
+        map: starSpriteTex,
+        size: innerWidth < 768 ? 4.2 : 5.5,
+        sizeAttenuation: true,
+        vertexColors: true,
         transparent: true,
+        opacity: 1,
         depthWrite: false,
-        depthTest: false,
+        depthTest: true,
         fog: false,
+        toneMapped: false,
         blending: THREE.AdditiveBlending,
     });
 
     const points = new THREE.Points(geo, mat);
-    points.renderOrder = -10;
+    points.renderOrder = 0;
     points.frustumCulled = false;
-    return { points, geo, mat };
+
+    const fieldCount = starParticles.length;
+    const brightCount = innerWidth < 768 ? 280 : 520;
+    const bPos = new Float32Array(brightCount * 3);
+    const bCol = new Float32Array(brightCount * 3);
+    for (let i = 0; i < brightCount; i += 1) {
+        const src = starParticles[Math.floor(Math.random() * fieldCount)];
+        const brightness = 0.75 + Math.random() * 0.25;
+        const x = src.bx + (Math.random() - 0.5) * 2.5;
+        const y = src.by + (Math.random() - 0.5) * 2.5;
+        const z = src.bz + (Math.random() - 0.5) * 1.5;
+        addStarSample(x, y, z, brightness, Math.random() < 0.2 ? 'blue' : 'gold', bPos, bCol, null, null, i);
+        starParticles[fieldCount + i].layer = 'bright';
+    }
+
+    const bGeo = new THREE.BufferGeometry();
+    bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
+    bGeo.setAttribute('color', new THREE.BufferAttribute(bCol, 3));
+    const bMat = new THREE.PointsMaterial({
+        map: starSpriteTex,
+        size: innerWidth < 768 ? 9 : 11,
+        sizeAttenuation: true,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+        depthTest: true,
+        fog: false,
+        toneMapped: false,
+        blending: THREE.AdditiveBlending,
+    });
+    const brightPoints = new THREE.Points(bGeo, bMat);
+    brightPoints.renderOrder = 0;
+    brightPoints.frustumCulled = false;
+
+    return {
+        points,
+        brightPoints,
+        geo,
+        bGeo,
+        mat,
+        bMat,
+        fieldCount,
+        brightCount,
+    };
 }
 
 const starfieldData = buildStarfield();
 const starfield = new THREE.Group();
 starfield.add(starfieldData.points);
-camera.add(starfield);
+starfield.add(starfieldData.brightPoints);
+scene.add(starfield);
+
+function updateStarPositions(geo, startIdx, count) {
+    const starPos = geo.attributes.position;
+    for (let i = 0; i < count; i += 1) {
+        const p = starParticles[startIdx + i];
+        const lx = p.bx + p.ox;
+        const ly = p.by + p.oy;
+        const lz = p.bz + p.oz;
+
+        _starProj.set(lx, ly, lz);
+        _starProj.applyMatrix4(starfield.matrixWorld);
+        _starProj.project(camera);
+        const sx = (_starProj.x * 0.5 + 0.5) * innerWidth;
+        const sy = (-_starProj.y * 0.5 + 0.5) * innerHeight;
+        const mdx = sx - starMouseX;
+        const mdy = sy - starMouseY;
+        const dist = Math.hypot(mdx, mdy);
+
+        let targetOx = 0;
+        let targetOy = 0;
+        let targetOz = 0;
+        if (dist < 160 && dist > 0 && sceneFade > 0.08) {
+            const force = (1 - dist / 160) * 0.92;
+            const push = force * (0.35 + p.brightness * 0.55);
+            targetOx = (mdx / dist) * push;
+            targetOy = (-mdy / dist) * push;
+            targetOz = force * 0.06;
+        }
+
+        p.ox += (targetOx - p.ox) * 0.13;
+        p.oy += (targetOy - p.oy) * 0.13;
+        p.oz += (targetOz - p.oz) * 0.13;
+
+        starPos.array[i * 3] = p.bx + p.ox;
+        starPos.array[i * 3 + 1] = p.by + p.oy;
+        starPos.array[i * 3 + 2] = p.bz + p.oz;
+    }
+    starPos.needsUpdate = true;
+}
 
 function createAsteroidGeometry(radius, seed) {
     const detail = radius > 0.28 ? 2 : 1;
@@ -1084,10 +1133,6 @@ function resize() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-    const pr = Math.min(window.devicePixelRatio, 2);
-    if (starfieldData.mat.uniforms?.uPixelRatio) {
-        starfieldData.mat.uniforms.uPixelRatio.value = pr;
-    }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -1139,42 +1184,14 @@ function animate() {
     });
     floatingRocks.visible = sceneFade > 0.03;
     starfield.visible = sceneFade > 0.03;
-    starfieldData.mat.uniforms.uOpacity.value = sceneFade;
-    starfieldData.mat.uniforms.uTime.value = t;
+    starfieldData.mat.opacity = sceneFade;
+    starfieldData.bMat.opacity = sceneFade;
+    starfield.position.copy(camera.position);
+    starfield.quaternion.copy(camera.quaternion);
+    starfield.updateMatrixWorld(true);
 
-    const starPos = starfieldData.geo.attributes.position;
-    starParticles.forEach((p, i) => {
-        const x = p.bx + p.ox;
-        const y = p.by + p.oy;
-        const z = p.bz + p.oz;
-        _starProj.set(x, y, z).applyMatrix4(camera.matrixWorld);
-        _starProj.project(camera);
-        const sx = (_starProj.x * 0.5 + 0.5) * innerWidth;
-        const sy = (-_starProj.y * 0.5 + 0.5) * innerHeight;
-        const mdx = sx - starMouseX;
-        const mdy = sy - starMouseY;
-        const dist = Math.hypot(mdx, mdy);
-
-        let targetOx = 0;
-        let targetOy = 0;
-        let targetOz = 0;
-        if (dist < 160 && dist > 0 && sceneFade > 0.08) {
-            const force = (1 - dist / 160) * 0.92;
-            const push = force * (0.35 + p.brightness * 0.55);
-            targetOx = (mdx / dist) * push;
-            targetOy = (-mdy / dist) * push;
-            targetOz = force * 0.08;
-        }
-
-        p.ox += (targetOx - p.ox) * 0.13;
-        p.oy += (targetOy - p.oy) * 0.13;
-        p.oz += (targetOz - p.oz) * 0.13;
-
-        starPos.array[i * 3] = p.bx + p.ox;
-        starPos.array[i * 3 + 1] = p.by + p.oy;
-        starPos.array[i * 3 + 2] = p.bz + p.oz;
-    });
-    starPos.needsUpdate = true;
+    updateStarPositions(starfieldData.geo, 0, starfieldData.fieldCount);
+    updateStarPositions(starfieldData.bGeo, starfieldData.fieldCount, starfieldData.brightCount);
 
     renderer.render(scene, camera);
 }
