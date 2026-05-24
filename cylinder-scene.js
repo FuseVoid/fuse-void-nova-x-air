@@ -255,7 +255,6 @@ const PANEL_H = 0.92;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
-const siteEnd = document.getElementById('site-end');
 const scrollBar = document.getElementById('scroll-bar');
 const focusLayer = document.getElementById('focus-layer');
 const focusClose = document.getElementById('focus-close');
