@@ -13,32 +13,119 @@ try {
 const RINGS = [
     {
         accent: '#c8ff4a',
-        ringColor: '#1a1f0a',
+        ringColor: '#121508',
         speed: 0.0018,
         items: [
-            { title: 'NOVA-X AIR', body: 'Professional MIDI control for Launchpad Pro MK3 and Ableton Live on iPad.' },
-            { title: 'FUSE VOID', body: 'Touch-first performance surface. Built for live session workflow.' },
-            { title: 'iPAD LANDSCAPE', body: 'Full 8×8 pad grid with mode strips and transport rail.' },
+            {
+                tag: '// NOVA-X AIR',
+                title: 'NOVA-X AIR',
+                stat: '8×8',
+                statLabel: 'Launchpad Pro MK3 grid on iPad',
+                body: 'Professional MIDI control surface built for Ableton Live session workflow. Touch-first. Zero menu diving.',
+                tags: ['Session', 'Sequencer', 'Note & Chord', 'Custom'],
+            },
+            {
+                tag: '// FUSE VOID',
+                title: 'REAL-TIME',
+                stat: '0ms',
+                statLabel: 'CoreMIDI on-device latency',
+                body: 'Designed for live performance. Clip launch, pattern edit, and transport without leaving the grid.',
+                tags: ['iPad Landscape', 'RGB Pads', 'Transport Rail'],
+            },
+            {
+                tag: '// HARDWARE',
+                title: 'LAUNCHPAD MK3',
+                stat: '128',
+                statLabel: 'Velocity-sensitive RGB pads',
+                body: 'Maps 1:1 to Ableton Remote scripts. Works with physical Launchpad or virtual IAC MIDI ports.',
+                tags: ['Ableton Live 11/12', 'CoreMIDI', 'Offline'],
+            },
+            {
+                tag: '// WORKFLOW',
+                title: 'PERFORM',
+                stat: '5',
+                statLabel: 'Performance modes on one surface',
+                body: 'Session, Note, Chord, Custom, and Sequencer — switch instantly from the mode strip.',
+                tags: ['Clip Grid', 'Scale Lock', 'Mixer Pages'],
+            },
         ],
     },
     {
         accent: '#ffffff',
-        ringColor: '#141414',
+        ringColor: '#111111',
         speed: -0.0014,
         items: [
-            { title: 'SESSION MODE', body: '8×8 clip matrix mapped to Ableton Live session view.' },
-            { title: 'CLIP LAUNCH', body: 'One tap to fire, queue, or record clips — MIDI Channel 1.' },
-            { title: 'SYSEX FEEDBACK', body: 'Ableton clip names and colors sync back to the grid.' },
+            {
+                tag: '// SESSION',
+                title: 'CLIP GRID',
+                stat: '64',
+                statLabel: 'Session slots — 8 rows × 8 columns',
+                body: 'One tap to launch, queue, or record clips. Full Ableton session view mirrored on the pad matrix.',
+                tags: ['MIDI Ch1', 'Clip Launch', 'Queue', 'Record'],
+            },
+            {
+                tag: '// ABLETON',
+                title: 'REMOTE',
+                stat: '1:1',
+                statLabel: 'Launchpad Pro MK3 mapping',
+                body: 'Session clips fire on Channel 1. SysEx feedback returns clip name and color to the grid.',
+                tags: ['SysEx Feedback', 'Clip Metadata', 'Color Sync'],
+            },
+            {
+                tag: '// MAPPING',
+                title: 'CLIP EDITOR',
+                stat: '∞',
+                statLabel: 'Per-pad note & channel assign',
+                body: 'Remap any pad to a different clip slot, note, or MIDI channel from the mapping editor.',
+                tags: ['Note Assign', 'Channel Route', 'Slot Map'],
+            },
+            {
+                tag: '// LIVE SET',
+                title: 'SESSION',
+                stat: 'A–H',
+                statLabel: 'Scene & clip row control',
+                body: 'Stop all clips, select scenes, and navigate rows — built for stage and studio sessions.',
+                tags: ['Scene Launch', 'Row Select', 'Stop All'],
+            },
         ],
     },
     {
         accent: '#ffb08a',
-        ringColor: '#1a100c',
+        ringColor: '#161008',
         speed: 0.0016,
         items: [
-            { title: 'NOTE MODE', body: 'Scale lock: Major, Minor, Dorian, Pentatonic, Chromatic.' },
-            { title: 'CHORD MODE', body: 'Maj, Min, Min7, Sus4 — chord memory with 4 recall slots.' },
-            { title: 'ROOT & OCTAVE', body: 'Set root note and compact scale layout on the 8×8 grid.' },
+            {
+                tag: '// NOTE',
+                title: 'SCALE LOCK',
+                stat: '5',
+                statLabel: 'Scales — Major, Minor, Dorian & more',
+                body: 'Lock pads to a musical scale. Set root note and compact or expanded grid layout for performance.',
+                tags: ['Chromatic', 'Pentatonic', 'Root Note', 'Compact View'],
+            },
+            {
+                tag: '// CHORD',
+                title: 'CHORD MODE',
+                stat: '4',
+                statLabel: 'Chord memory recall slots',
+                body: 'Play full chords from a single pad. Maj, Min, Min7, Sus4 — save custom intervals to memory.',
+                tags: ['Maj / Min', 'Min7', 'Sus4', 'Custom Intervals'],
+            },
+            {
+                tag: '// MELODY',
+                title: 'NOTE MODE',
+                stat: 'Ch2',
+                statLabel: 'Default instrument MIDI channel',
+                body: 'Melodic performance with scale-aware pad layout. Every pad sends the right note in key.',
+                tags: ['Instrument', 'Velocity', 'Octave Span'],
+            },
+            {
+                tag: '// DRUMS',
+                title: 'DRUM RACK',
+                stat: '4×4',
+                statLabel: 'Classic drum machine layout',
+                body: 'Kick, snare, hats, toms mapped in 4×4 grid inside Custom mode — finger drumming ready.',
+                tags: ['Kick', 'Snare', 'Hi-Hat', 'Toms'],
+            },
         ],
     },
     {
@@ -46,9 +133,38 @@ const RINGS = [
         ringColor: '#0a1018',
         speed: -0.0012,
         items: [
-            { title: 'SEQUENCER', body: '4 tracks × 32 steps. Drum or note input with live record.' },
-            { title: 'SWING & GROOVE', body: 'Per-step micro offset and swing amount for tight feel.' },
-            { title: 'PROBABILITY', body: 'Step probability, velocity, and CC automation per step.' },
+            {
+                tag: '// SEQUENCER',
+                title: 'STEP ENGINE',
+                stat: '32',
+                statLabel: 'Steps per pattern — 4 tracks',
+                body: 'Precision 16th-note sequencer with live record, quantization, and per-track MIDI output.',
+                tags: ['4 Tracks', 'Live Record', 'Quantize', 'Ch9–12'],
+            },
+            {
+                tag: '// GROOVE',
+                title: 'SWING',
+                stat: '±',
+                statLabel: 'Per-step micro timing offset',
+                body: 'Swing amount and micro offset per step for human feel. Tighten or loosen the entire pattern.',
+                tags: ['Micro Timing', 'Swing Control', 'Accent'],
+            },
+            {
+                tag: '// GENERATIVE',
+                title: 'PROBABILITY',
+                stat: '%',
+                statLabel: 'Step probability & velocity',
+                body: 'Set hit probability per step. CC automation values with configurable controller per track.',
+                tags: ['Velocity', 'CC Automate', 'Random Hits'],
+            },
+            {
+                tag: '// TRANSPORT',
+                title: 'CLOCK',
+                stat: '40–240',
+                statLabel: 'BPM range — internal or external',
+                body: 'Sync to Ableton via MIDI clock. Play, stop, continue — metronome with visual playhead.',
+                tags: ['External Sync', 'Metronome', 'Playhead'],
+            },
         ],
     },
     {
@@ -56,48 +172,86 @@ const RINGS = [
         ringColor: '#141008',
         speed: 0.0015,
         items: [
-            { title: 'MIDI CLOCK', body: 'Internal engine or external sync from Ableton transport.' },
-            { title: 'METRONOME', body: 'BPM 40–240. Play, stop, continue — follows Live clock.' },
-            { title: 'MIDI ROUTING', body: 'Ch1 session · Ch2 instrument · Ch9–12 sequencer out.' },
-        ],
-    },
-    {
-        accent: '#b48cff',
-        ringColor: '#120a1a',
-        speed: -0.0013,
-        items: [
-            { title: 'CUSTOM MODE', body: 'Mixer, pan, mute, solo, arm — 8 custom device pages.' },
-            { title: 'DRUM RACK', body: '4×4 drum layout with kick, snare, hats, toms on the grid.' },
-            { title: 'CLIP MAPPING', body: 'Per-pad note, channel, and clip slot assignment editor.' },
-        ],
-    },
-    {
-        accent: '#5ec4ff',
-        ringColor: '#081018',
-        speed: 0.0014,
-        items: [
-            { title: '126 PROJECTS', body: 'Save and load full snapshots — clips, mixer, sequencer state.' },
-            { title: 'UNDO STACK', body: 'Step back through edits without losing your live set.' },
-            { title: 'OFFLINE FIRST', body: 'No cloud. No tracking. CoreMIDI stays on your device.' },
+            {
+                tag: '// CUSTOM',
+                title: 'MIXER',
+                stat: '11',
+                statLabel: 'Channels — volume, pan, mute, solo',
+                body: 'Full mixer pages inside Custom mode. Mute, solo, arm tracks — pan and volume per channel.',
+                tags: ['Volume', 'Pan', 'Mute', 'Solo / Arm'],
+            },
+            {
+                tag: '// MIDI BUS',
+                title: 'NOVAX HUB',
+                stat: 'Ch1–12',
+                statLabel: 'Routed MIDI output channels',
+                body: 'NovaxMIDIHub — single authority for all MIDI I/O. Session, instrument, and sequencer routing.',
+                tags: ['CoreMIDI', 'IAC Virtual', 'Export'],
+            },
+            {
+                tag: '// DEVICE',
+                title: '8 PAGES',
+                stat: 'Custom',
+                statLabel: 'User-assignable device layouts',
+                body: 'Eight custom mode pages for mixer, device control, drum rack, and melodic layouts.',
+                tags: ['Device Ctrl', 'Drum Layout', 'User Maps'],
+            },
+            {
+                tag: '// PRIVACY',
+                title: 'OFFLINE',
+                stat: '0',
+                statLabel: 'Data collected — none',
+                body: 'MIDI stays on device via CoreMIDI. No cloud sync. No tracking. Your set is yours alone.',
+                tags: ['No Cloud', 'No Cookies', 'On-Device'],
+            },
         ],
     },
     {
         accent: '#f2f2f2',
-        ringColor: '#101010',
+        ringColor: '#0c0c0c',
         speed: -0.0011,
         items: [
-            { title: 'SWISS FUTURISM', body: 'Dark UI, high contrast, 8pt grid — color means mode.' },
-            { title: 'BOOT SEQUENCE', body: 'Blade Runner–inspired startup with cyber grid atmosphere.' },
-            { title: 'IAC & HARDWARE', body: 'Works with Launchpad MK3 or virtual MIDI ports for Ableton Remote.' },
+            {
+                tag: '// PROJECTS',
+                title: '126 SLOTS',
+                stat: '126',
+                statLabel: 'Full project save & load',
+                body: 'Save complete snapshots — clips, mixer, sequencer, scale, chord memory, and mode state.',
+                tags: ['Save / Load', 'Snapshots', 'Slot Stepper'],
+            },
+            {
+                tag: '// UNDO',
+                title: 'HISTORY',
+                stat: '∞',
+                statLabel: 'Undo stack — step back safely',
+                body: 'Non-destructive undo during live editing. Recover from mistakes without stopping playback.',
+                tags: ['Undo Stack', 'Snapshots', 'Safe Edit'],
+            },
+            {
+                tag: '// DESIGN',
+                title: 'SWISS UI',
+                stat: '8pt',
+                statLabel: 'Grid system — color means mode',
+                body: 'Swiss Futurism aesthetic. Dark canvas, high contrast, Blade Runner boot sequence atmosphere.',
+                tags: ['Cyber Grid', 'Mode Colors', 'Boot Screen'],
+            },
+            {
+                tag: '// COMING',
+                title: 'APP STORE',
+                stat: '2026',
+                statLabel: 'Fuse Void Music Engine',
+                body: 'NOVA-X AIR — Launchpad & Ableton MIDI for iPad. Built for speed. Built for you.',
+                tags: ['iOS iPad', 'Silicon Native', 'Fuse Void'],
+            },
         ],
     },
 ];
 
-const RING_RADIUS = 4.2;
-const RING_HEIGHT = 1.35;
-const RING_GAP = 3.1;
-const PANEL_W = 2.8;
-const PANEL_H = 1.05;
+const RING_RADIUS = 4.55;
+const RING_HEIGHT = 1.55;
+const RING_GAP = 3.35;
+const PANEL_W = 3.55;
+const PANEL_H = 1.75;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -108,17 +262,17 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x050505, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x050505, 14, 42);
+scene.fog = new THREE.Fog(0x050505, 16, 48);
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 2.5, 11.5);
 camera.lookAt(0, 0, 0);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.72));
-const key = new THREE.DirectionalLight(0xffffff, 1.1);
+scene.add(new THREE.AmbientLight(0xffffff, 0.78));
+const key = new THREE.DirectionalLight(0xffffff, 1.15);
 key.position.set(4, 8, 10);
 scene.add(key);
-const rim = new THREE.DirectionalLight(0x88aaff, 0.35);
+const rim = new THREE.DirectionalLight(0x88aaff, 0.4);
 rim.position.set(-6, -2, -4);
 scene.add(rim);
 
@@ -137,50 +291,106 @@ let dragLastX = 0;
 let dragOriginX = 0;
 let dragRing = null;
 
-function makePanelTexture(title, body, accent) {
-    const c = document.createElement('canvas');
-    c.width = 640;
-    c.height = 240;
-    const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, c.width, c.height);
-
-    ctx.fillStyle = accent;
-    ctx.font = '700 52px Inter, system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(title, c.width / 2, 36);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = '400 26px Inter, system-ui, sans-serif';
-    wrapText(ctx, body, c.width / 2, 108, 560, 32);
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-    return tex;
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+function wrapTextLines(ctx, text, maxWidth) {
     const words = text.split(' ');
+    const lines = [];
     let line = '';
-    let yy = y;
-    for (let i = 0; i < words.length; i++) {
-        const test = line + words[i] + ' ';
-        if (ctx.measureText(test).width > maxWidth && i > 0) {
-            ctx.fillText(line.trim(), x, yy);
-            line = words[i] + ' ';
-            yy += lineHeight;
+    for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
         } else {
             line = test;
         }
     }
-    ctx.fillText(line.trim(), x, yy);
+    if (line) lines.push(line);
+    return lines;
+}
+
+function drawLines(ctx, lines, x, y, lineHeight) {
+    lines.forEach((ln) => {
+        ctx.fillText(ln, x, y);
+        y += lineHeight;
+    });
+    return y;
+}
+
+function makePanelTexture(item, accent) {
+    const c = document.createElement('canvas');
+    c.width = 820;
+    c.height = 480;
+    const ctx = c.getContext('2d');
+    const pad = 40;
+    const w = c.width - pad * 2;
+
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.025)';
+    ctx.fillRect(8, 8, c.width - 16, c.height - 16);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeRect(8, 8, c.width - 16, c.height - 16);
+
+    let y = 32;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    if (item.tag) {
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.9;
+        ctx.font = '600 20px "JetBrains Mono", ui-monospace, monospace';
+        ctx.fillText(item.tag.toUpperCase(), pad, y);
+        y += 34;
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = accent;
+    ctx.font = '800 58px Inter, system-ui, sans-serif';
+    y = drawLines(ctx, wrapTextLines(ctx, item.title, w), pad, y, 62) + 6;
+
+    if (item.stat) {
+        y += 4;
+        ctx.fillStyle = accent;
+        ctx.font = '700 44px Inter, system-ui, sans-serif';
+        ctx.fillText(item.stat, pad, y);
+        y += 50;
+        if (item.statLabel) {
+            ctx.fillStyle = 'rgba(255,255,255,0.52)';
+            ctx.font = '400 19px Inter, system-ui, sans-serif';
+            y = drawLines(ctx, wrapTextLines(ctx, item.statLabel, w), pad, y, 24) + 8;
+        }
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.beginPath();
+    ctx.moveTo(pad, y);
+    ctx.lineTo(c.width - pad, y);
+    ctx.stroke();
+    y += 22;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '400 21px Inter, system-ui, sans-serif';
+    y = drawLines(ctx, wrapTextLines(ctx, item.body, w), pad, y, 28) + 10;
+
+    if (item.tags?.length) {
+        ctx.fillStyle = 'rgba(255,255,255,0.38)';
+        ctx.font = '500 16px "JetBrains Mono", ui-monospace, monospace';
+        item.tags.forEach((tag) => {
+            ctx.fillText(`// ${tag}`, pad, y);
+            y += 24;
+        });
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    tex.needsUpdate = true;
+    return tex;
 }
 
 function createRing(config, y, index) {
     const group = new THREE.Group();
     group.position.y = y;
     group.userData.speed = config.speed;
-    group.userData.rotationY = index * 0.4;
+    group.userData.rotationY = index * 0.35;
     group.userData.paused = false;
     group.userData.dragVelocity = 0;
 
@@ -189,24 +399,25 @@ function createRing(config, y, index) {
         ringBodies.push(mesh);
     };
 
-    const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 72, 1, true);
+    const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 80, 1, true);
     const ringMat = new THREE.MeshStandardMaterial({
         color: config.ringColor,
         emissive: config.accent,
-        emissiveIntensity: 0.08,
-        metalness: 0.35,
-        roughness: 0.55,
+        emissiveIntensity: 0.06,
+        metalness: 0.25,
+        roughness: 0.65,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.94,
+        opacity: 0.48,
+        depthWrite: false,
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.y = Math.PI * 0.5;
     tagRingPart(ringMesh);
     group.add(ringMesh);
 
-    const edgeGeo = new THREE.TorusGeometry(RING_RADIUS, 0.028, 8, 96);
-    const edgeMat = new THREE.MeshBasicMaterial({ color: config.accent, transparent: true, opacity: 0.82 });
+    const edgeGeo = new THREE.TorusGeometry(RING_RADIUS, 0.032, 10, 100);
+    const edgeMat = new THREE.MeshBasicMaterial({ color: config.accent, transparent: true, opacity: 0.88 });
     const topEdge = new THREE.Mesh(edgeGeo, edgeMat);
     topEdge.rotation.x = Math.PI / 2;
     topEdge.position.y = RING_HEIGHT * 0.48;
@@ -219,25 +430,25 @@ function createRing(config, y, index) {
     group.add(botEdge);
 
     config.items.forEach((item, i) => {
-        const angle = (i / config.items.length) * Math.PI * 2 + 0.35;
-        const tex = makePanelTexture(item.title, item.body, config.accent);
+        const angle = (i / config.items.length) * Math.PI * 2 + 0.2;
+        const tex = makePanelTexture(item, config.accent);
         const mat = new THREE.MeshBasicMaterial({
             map: tex,
             transparent: true,
             depthWrite: false,
             side: THREE.DoubleSide,
+            opacity: 0.92,
         });
         const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), mat);
-        const px = Math.cos(angle) * (RING_RADIUS + 0.08);
-        const pz = Math.sin(angle) * (RING_RADIUS + 0.08);
+        const px = Math.cos(angle) * (RING_RADIUS + 0.12);
+        const pz = Math.sin(angle) * (RING_RADIUS + 0.12);
         panel.position.set(px, 0, pz);
-        panel.lookAt(px * 2, 0, pz * 2);
+        panel.lookAt(px * 2.5, 0, pz * 2.5);
 
         panel.userData = {
             ring: group,
             ringRoot: group,
             home: panel.position.clone(),
-            homeScale: 1,
             accent: config.accent,
             title: item.title,
             focused: false,
@@ -282,10 +493,8 @@ function focusPanel(panel) {
         clearFocus();
         return;
     }
-
     if (activePanel) resetPanel(activePanel);
     if (pausedRing && pausedRing !== panel.userData.ring) resumeRing(pausedRing);
-
     activePanel = panel;
     pausedRing = panel.userData.ring;
     panel.userData.focused = true;
@@ -308,10 +517,8 @@ function pickRingAt(clientX, clientY) {
 
 function applyRingDrag(group, dx) {
     if (!group || !dx) return;
-    const gain = 0.009;
-    const momentum = 0.018;
-    group.userData.rotationY += dx * gain;
-    group.userData.dragVelocity += dx * momentum;
+    group.userData.rotationY += dx * 0.009;
+    group.userData.dragVelocity += dx * 0.018;
 }
 
 function onPointerDown(e) {
@@ -333,11 +540,8 @@ function onPointerUp(e) {
     setPointerFromEvent(e.clientX, e.clientY);
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(clickable, false);
-    if (hits.length) {
-        focusPanel(hits[0].object);
-    } else {
-        clearFocus();
-    }
+    if (hits.length) focusPanel(hits[0].object);
+    else clearFocus();
 }
 
 function onPointerMove(e) {
@@ -352,11 +556,7 @@ window.addEventListener('pointerup', onPointerUp);
 window.addEventListener('pointermove', onPointerMove);
 
 window.addEventListener('wheel', (e) => {
-    scrollTarget = THREE.MathUtils.clamp(
-        scrollTarget + e.deltaY * 0.004,
-        0,
-        1
-    );
+    scrollTarget = THREE.MathUtils.clamp(scrollTarget + e.deltaY * 0.004, 0, 1);
 }, { passive: true });
 
 window.addEventListener('touchstart', (e) => {
@@ -366,9 +566,7 @@ window.addEventListener('touchstart', (e) => {
 window.addEventListener('touchmove', (e) => {
     if (e.touches.length === 1) {
         scrollTarget = THREE.MathUtils.clamp(
-            scrollTarget + (dragLastX - e.touches[0].clientX) * 0.003,
-            0,
-            1
+            scrollTarget + (dragLastX - e.touches[0].clientX) * 0.003, 0, 1
         );
         dragLastX = e.touches[0].clientX;
     }
@@ -404,9 +602,7 @@ function animate() {
         if (group.userData.dragVelocity) {
             group.userData.rotationY += group.userData.dragVelocity * delta * 60;
             group.userData.dragVelocity *= 0.93;
-            if (Math.abs(group.userData.dragVelocity) < 0.0002) {
-                group.userData.dragVelocity = 0;
-            }
+            if (Math.abs(group.userData.dragVelocity) < 0.0002) group.userData.dragVelocity = 0;
         }
         group.rotation.y = group.userData.rotationY;
     });
@@ -417,19 +613,18 @@ function animate() {
 
         const home = panel.userData.home;
         const outward = home.clone().normalize();
-        const popDist = 1.15 * panel.userData.pop;
+        const popDist = 1.25 * panel.userData.pop;
         panel.position.set(
             home.x + outward.x * popDist,
             home.y + Math.sin(t * 2 + panel.id) * 0.02 * panel.userData.pop,
             home.z + outward.z * popDist
         );
 
-        const scale = 1 + panel.userData.pop * 0.45;
+        const scale = 1 + panel.userData.pop * 0.5;
         panel.scale.set(scale, scale, scale);
 
-        if (panel.material.map) {
-            panel.material.opacity = 0.78 + panel.userData.pop * 0.22;
-        }
+        const baseOp = panel.userData.focused ? 1 : 0.88;
+        if (panel.material.map) panel.material.opacity = baseOp;
     });
 
     renderer.render(scene, camera);
