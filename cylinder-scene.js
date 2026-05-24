@@ -6,9 +6,9 @@ const RINGS = [
         ringColor: '#1a1f0a',
         speed: 0.0018,
         items: [
-            { title: 'NOVA-X AIR', body: 'Launchpad MK3 control surface for iOS.' },
-            { title: '8×8 PAD GRID', body: 'RGB velocity pads with instant clip launch.' },
-            { title: 'REAL-TIME', body: 'Zero menu diving. Touch-first workflow.' },
+            { title: 'NOVA-X AIR', body: 'Professional MIDI control for Launchpad Pro MK3 and Ableton Live on iPad.' },
+            { title: 'FUSE VOID', body: 'Touch-first performance surface. Built for live session workflow.' },
+            { title: 'iPAD LANDSCAPE', body: 'Full 8×8 pad grid with mode strips and transport rail.' },
         ],
     },
     {
@@ -16,9 +16,9 @@ const RINGS = [
         ringColor: '#141414',
         speed: -0.0014,
         items: [
-            { title: 'SEQUENCER', body: '16-step precision engine with micro timing.' },
-            { title: '126 SLOTS', body: 'Pattern save, chain A–H, bar-aligned switch.' },
-            { title: 'CLIP MATRIX', body: 'Multi-track editor with per-step assignment.' },
+            { title: 'SESSION MODE', body: '8×8 clip matrix mapped to Ableton Live session view.' },
+            { title: 'CLIP LAUNCH', body: 'One tap to fire, queue, or record clips — MIDI Channel 1.' },
+            { title: 'SYSEX FEEDBACK', body: 'Ableton clip names and colors sync back to the grid.' },
         ],
     },
     {
@@ -26,9 +26,9 @@ const RINGS = [
         ringColor: '#1a100c',
         speed: 0.0016,
         items: [
-            { title: 'MIDI BUS', body: 'NovaxMIDIHub — live routing and export.' },
-            { title: 'ABLETON', body: 'Session clip grid mapped to Launchpad Pro.' },
-            { title: 'OFFLINE', body: 'Your patterns stay on device. No tracking.' },
+            { title: 'NOTE MODE', body: 'Scale lock: Major, Minor, Dorian, Pentatonic, Chromatic.' },
+            { title: 'CHORD MODE', body: 'Maj, Min, Min7, Sus4 — chord memory with 4 recall slots.' },
+            { title: 'ROOT & OCTAVE', body: 'Set root note and compact scale layout on the 8×8 grid.' },
         ],
     },
     {
@@ -36,9 +36,9 @@ const RINGS = [
         ringColor: '#0a1018',
         speed: -0.0012,
         items: [
-            { title: 'SWISS FUTURISM', body: 'Blade Runner boot. Cyber grid UI language.' },
-            { title: 'SILICON', body: 'Native M1–M5 performance on iPad.' },
-            { title: 'COMING SOON', body: 'App Store launch — Fuse Void Music Engine.' },
+            { title: 'SEQUENCER', body: '4 tracks × 32 steps. Drum or note input with live record.' },
+            { title: 'SWING & GROOVE', body: 'Per-step micro offset and swing amount for tight feel.' },
+            { title: 'PROBABILITY', body: 'Step probability, velocity, and CC automation per step.' },
         ],
     },
     {
@@ -46,9 +46,39 @@ const RINGS = [
         ringColor: '#141008',
         speed: 0.0015,
         items: [
-            { title: 'CHAOS FX', body: 'XY Kaos pad with reset behavior.' },
-            { title: '11 CHANNELS', body: 'Per-channel mute and dynamics control.' },
-            { title: 'ACCENT', body: 'Swing system with groove offset per step.' },
+            { title: 'MIDI CLOCK', body: 'Internal engine or external sync from Ableton transport.' },
+            { title: 'METRONOME', body: 'BPM 40–240. Play, stop, continue — follows Live clock.' },
+            { title: 'MIDI ROUTING', body: 'Ch1 session · Ch2 instrument · Ch9–12 sequencer out.' },
+        ],
+    },
+    {
+        accent: '#b48cff',
+        ringColor: '#120a1a',
+        speed: -0.0013,
+        items: [
+            { title: 'CUSTOM MODE', body: 'Mixer, pan, mute, solo, arm — 8 custom device pages.' },
+            { title: 'DRUM RACK', body: '4×4 drum layout with kick, snare, hats, toms on the grid.' },
+            { title: 'CLIP MAPPING', body: 'Per-pad note, channel, and clip slot assignment editor.' },
+        ],
+    },
+    {
+        accent: '#5ec4ff',
+        ringColor: '#081018',
+        speed: 0.0014,
+        items: [
+            { title: '126 PROJECTS', body: 'Save and load full snapshots — clips, mixer, sequencer state.' },
+            { title: 'UNDO STACK', body: 'Step back through edits without losing your live set.' },
+            { title: 'OFFLINE FIRST', body: 'No cloud. No tracking. CoreMIDI stays on your device.' },
+        ],
+    },
+    {
+        accent: '#f2f2f2',
+        ringColor: '#101010',
+        speed: -0.0011,
+        items: [
+            { title: 'SWISS FUTURISM', body: 'Dark UI, high contrast, 8pt grid — color means mode.' },
+            { title: 'BOOT SEQUENCE', body: 'Blade Runner–inspired startup with cyber grid atmosphere.' },
+            { title: 'IAC & HARDWARE', body: 'Works with Launchpad MK3 or virtual MIDI ports for Ableton Remote.' },
         ],
     },
 ];
