@@ -1,4 +1,14 @@
-import * as THREE from 'three';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+function showBootError(err) {
+    console.error(err);
+    const box = document.getElementById('boot-error');
+    if (!box) return;
+    box.hidden = false;
+    box.textContent = `Scene failed to load: ${err?.message || err}`;
+}
+
+try {
 
 const RINGS = [
     {
@@ -104,7 +114,7 @@ const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 10
 camera.position.set(0, 2.5, 11.5);
 camera.lookAt(0, 0, 0);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+scene.add(new THREE.AmbientLight(0xffffff, 0.72));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
 key.position.set(4, 8, 10);
 scene.add(key);
@@ -145,7 +155,7 @@ function makePanelTexture(title, body, accent) {
     wrapText(ctx, body, c.width / 2, 108, 560, 32);
 
     const tex = new THREE.CanvasTexture(c);
-    tex.anisotropy = 4;
+    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
     return tex;
 }
 
@@ -200,7 +210,8 @@ function createRing(config, y, index) {
     topEdge.position.y = RING_HEIGHT * 0.48;
     tagRingPart(topEdge);
     group.add(topEdge);
-    const botEdge = topEdge.clone();
+    const botEdge = new THREE.Mesh(edgeGeo, edgeMat);
+    botEdge.rotation.x = Math.PI / 2;
     botEdge.position.y = -RING_HEIGHT * 0.48;
     tagRingPart(botEdge);
     group.add(botEdge);
@@ -423,3 +434,7 @@ function animate() {
 }
 
 animate();
+
+} catch (err) {
+    showBootError(err);
+}
