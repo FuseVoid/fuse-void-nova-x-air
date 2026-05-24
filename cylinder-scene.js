@@ -15,6 +15,7 @@ const RINGS = [
         accent: '#c8ff4a',
         ringColor: '#121508',
         speed: 0.0018,
+        screen: { src: 'images/nova-1-session.png', title: 'Session', caption: '8×8 clip grid · scene launch · transport' },
         items: [
             {
                 tag: '// NOVA-X AIR',
@@ -54,6 +55,7 @@ const RINGS = [
         accent: '#ffffff',
         ringColor: '#111111',
         speed: -0.0014,
+        screen: { src: 'images/nova-1-session.png', title: 'Clip Grid', caption: 'Session view · Ableton Remote · SysEx feedback' },
         items: [
             {
                 tag: '// SESSION',
@@ -93,6 +95,7 @@ const RINGS = [
         accent: '#ffb08a',
         ringColor: '#161008',
         speed: 0.0016,
+        screen: { src: 'images/nova-2-note.png', title: 'Note', caption: 'Scale lock · root note · CH 2 instrument' },
         items: [
             {
                 tag: '// NOTE',
@@ -132,6 +135,7 @@ const RINGS = [
         accent: '#9bb8e1',
         ringColor: '#0a1018',
         speed: -0.0012,
+        screen: { src: 'images/nova-5-sequencer.png', title: 'Sequencer', caption: '4 tracks · 32 steps · swing · probability' },
         items: [
             {
                 tag: '// SEQUENCER',
@@ -171,6 +175,7 @@ const RINGS = [
         accent: '#e8943a',
         ringColor: '#141008',
         speed: 0.0015,
+        screen: { src: 'images/nova-4-custom.png', title: 'Custom', caption: 'Mixer pages · volume · pan · mute · solo' },
         items: [
             {
                 tag: '// CUSTOM',
@@ -210,6 +215,7 @@ const RINGS = [
         accent: '#f2f2f2',
         ringColor: '#0c0c0c',
         speed: -0.0011,
+        screen: { src: 'images/nova-3-chord.png', title: 'Chord', caption: 'Chord memory · Min7 · save & recall slots' },
         items: [
             {
                 tag: '// PROJECTS',
@@ -252,6 +258,8 @@ const RING_HEIGHT = 1.38;
 const RING_GAP = 3.35;
 const PANEL_W = 2.75;
 const PANEL_H = 0.92;
+const SCREEN_W = 3.82;
+const SCREEN_H = 1.24;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -259,6 +267,11 @@ const scrollBar = document.getElementById('scroll-bar');
 const focusLayer = document.getElementById('focus-layer');
 const focusClose = document.getElementById('focus-close');
 const focusCard = document.getElementById('focus-card');
+const focusText = document.getElementById('focus-text');
+const focusFigure = document.getElementById('focus-figure');
+const focusImage = document.getElementById('focus-image');
+const focusScreenCaption = document.getElementById('focus-screen-caption');
+const focusScreenTag = document.getElementById('focus-screen-tag');
 const focusEls = {
     tag: document.getElementById('focus-tag'),
     title: document.getElementById('focus-title'),
@@ -334,6 +347,55 @@ function truncateLine(ctx, text, maxWidth) {
     return `${t}…`;
 }
 
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load ${src}`));
+        img.src = src;
+    });
+}
+
+function makeScreenTexture(img, accent, title) {
+    const c = document.createElement('canvas');
+    c.width = 720;
+    c.height = 248;
+    const ctx = c.getContext('2d');
+    const pad = 10;
+    const innerW = c.width - pad * 2;
+    const innerH = c.height - pad * 2 - 22;
+    const aspect = img.width / img.height;
+    let drawW = innerW;
+    let drawH = drawW / aspect;
+    if (drawH > innerH) {
+        drawH = innerH;
+        drawW = drawH * aspect;
+    }
+    const drawX = (c.width - drawW) * 0.5;
+    const drawY = pad + (innerH - drawH) * 0.5;
+
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    ctx.strokeStyle = `${accent}88`;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(drawX - 1, drawY - 1, drawW + 2, drawH + 2);
+
+    ctx.fillStyle = accent;
+    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText((title || 'SCREEN').toUpperCase(), pad, c.height - 12);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.fillText('TAP · EXPAND', c.width - pad, c.height - 12);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    return tex;
+}
+
 function makeCompactPanelTexture(item, accent) {
     const c = document.createElement('canvas');
     c.width = 500;
@@ -379,7 +441,42 @@ function makeCompactPanelTexture(item, accent) {
     return tex;
 }
 
-function createRing(config, y, index) {
+function addPanel(group, config, item, angle, options = {}) {
+    const isScreen = options.isScreen === true;
+    const tex = options.texture;
+    const w = isScreen ? SCREEN_W : PANEL_W;
+    const h = isScreen ? SCREEN_H : PANEL_H;
+    const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        opacity: isScreen ? 0.96 : 0.9,
+    });
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    const radius = RING_RADIUS + (isScreen ? 0.1 : 0.06);
+    const px = Math.cos(angle) * radius;
+    const pz = Math.sin(angle) * radius;
+    panel.position.set(px, 0, pz);
+    panel.lookAt(px * 2.5, 0, pz * 2.5);
+
+    panel.userData = {
+        ring: group,
+        ringRoot: group,
+        home: panel.position.clone(),
+        accent: config.accent,
+        item,
+        title: item.title,
+        focused: false,
+        pop: 0,
+        isScreen,
+    };
+    group.add(panel);
+    clickable.push(panel);
+    return panel;
+}
+
+function createRing(config, y, index, screenImg) {
     const group = new THREE.Group();
     group.position.y = y;
     group.userData.speed = config.speed;
@@ -425,40 +522,36 @@ function createRing(config, y, index) {
     config.items.forEach((item, i) => {
         const angle = (i / config.items.length) * Math.PI * 2 + 0.2;
         const tex = makeCompactPanelTexture(item, config.accent);
-        const mat = new THREE.MeshBasicMaterial({
-            map: tex,
-            transparent: true,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            opacity: 0.9,
-        });
-        const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), mat);
-        const px = Math.cos(angle) * (RING_RADIUS + 0.06);
-        const pz = Math.sin(angle) * (RING_RADIUS + 0.06);
-        panel.position.set(px, 0, pz);
-        panel.lookAt(px * 2.5, 0, pz * 2.5);
-
-        panel.userData = {
-            ring: group,
-            ringRoot: group,
-            home: panel.position.clone(),
-            accent: config.accent,
-            item,
-            title: item.title,
-            focused: false,
-            pop: 0,
-        };
-        group.add(panel);
-        clickable.push(panel);
+        addPanel(group, config, item, angle, { texture: tex });
     });
+
+    if (config.screen && screenImg) {
+        const screenItem = {
+            isScreen: true,
+            image: config.screen.src,
+            title: config.screen.title,
+            caption: config.screen.caption,
+            tag: '// SCREEN',
+            body: config.screen.caption,
+        };
+        const screenTex = makeScreenTexture(screenImg, config.accent, config.screen.title);
+        addPanel(group, config, screenItem, Math.PI * 0.5, {
+            isScreen: true,
+            texture: screenTex,
+        });
+    }
 
     scene.add(group);
     ringGroups.push(group);
     return group;
 }
 
+async function buildRings() {
+    const screens = await Promise.all(RINGS.map((ring) => loadImage(ring.screen.src)));
+    RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i, screens[i]));
+}
+
 const totalHeight = (RINGS.length - 1) * RING_GAP;
-RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i));
 
 scrollSpacer.style.height = `${(RINGS.length + 1) * 100}vh`;
 
@@ -498,25 +591,42 @@ function resetPanel(panel) {
 
 function showFocusCard(item, accent) {
     const color = accent || '#c8ff4a';
+    const isScreen = item.isScreen && item.image;
+    focusCard.classList.toggle('focus-card--screen', isScreen);
     focusCard.style.setProperty('--focus-accent', color);
     focusCard.style.borderColor = `${color}44`;
     focusCard.style.background = `color-mix(in srgb, ${color} 6%, rgba(255,255,255,0.04))`;
-    focusEls.tag.textContent = item.tag || '';
-    focusEls.tag.style.color = color;
-    focusEls.title.textContent = item.title;
-    focusEls.title.style.color = color;
-    focusEls.stat.textContent = item.stat || '';
-    focusEls.stat.style.color = color;
-    focusEls.stat.hidden = !item.stat;
-    focusEls.statLabel.textContent = item.statLabel || '';
-    focusEls.statLabel.hidden = !item.statLabel;
-    focusEls.body.textContent = item.body || '';
-    focusEls.tags.innerHTML = '';
-    (item.tags || []).forEach((tag) => {
-        const li = document.createElement('li');
-        li.textContent = tag;
-        focusEls.tags.appendChild(li);
-    });
+
+    if (isScreen) {
+        focusText.hidden = true;
+        focusFigure.hidden = false;
+        focusScreenTag.textContent = item.tag || '// SCREEN';
+        focusScreenTag.style.color = color;
+        focusImage.src = item.image;
+        focusImage.alt = item.title || 'NOVA-X AIR screenshot';
+        focusScreenCaption.textContent = item.caption || item.body || '';
+        focusScreenCaption.style.color = 'rgba(255,255,255,0.62)';
+    } else {
+        focusText.hidden = false;
+        focusFigure.hidden = true;
+        focusEls.tag.textContent = item.tag || '';
+        focusEls.tag.style.color = color;
+        focusEls.title.textContent = item.title;
+        focusEls.title.style.color = color;
+        focusEls.stat.textContent = item.stat || '';
+        focusEls.stat.style.color = color;
+        focusEls.stat.hidden = !item.stat;
+        focusEls.statLabel.textContent = item.statLabel || '';
+        focusEls.statLabel.hidden = !item.statLabel;
+        focusEls.body.textContent = item.body || '';
+        focusEls.tags.innerHTML = '';
+        (item.tags || []).forEach((tag) => {
+            const li = document.createElement('li');
+            li.textContent = tag;
+            focusEls.tags.appendChild(li);
+        });
+    }
+
     document.body.classList.add('has-focus');
     focusLayer.hidden = false;
     focusLayer.setAttribute('aria-hidden', 'false');
@@ -529,6 +639,9 @@ function hideFocusCard() {
     focusLayer.hidden = true;
     focusLayer.setAttribute('aria-hidden', 'true');
     focusCard.style.removeProperty('background');
+    focusCard.classList.remove('focus-card--screen');
+    focusText.hidden = false;
+    focusFigure.hidden = true;
 }
 
 function clearFocus() {
@@ -653,27 +766,31 @@ function animate() {
 
         const home = panel.userData.home;
         const outward = home.clone().normalize();
-        const popDist = 1.05 * panel.userData.pop;
+        const popDist = (panel.userData.isScreen ? 1.18 : 1.05) * panel.userData.pop;
         panel.position.set(
             home.x + outward.x * popDist,
             home.y + Math.sin(t * 2 + panel.id) * 0.015 * panel.userData.pop,
             home.z + outward.z * popDist
         );
 
-        const scale = 1 + panel.userData.pop * 0.42;
+        const scale = 1 + panel.userData.pop * (panel.userData.isScreen ? 0.52 : 0.42);
         panel.scale.set(scale, scale, scale);
 
         if (panel.material.map) {
             if (isActive) panel.material.opacity = 1;
             else if (activePanel) panel.material.opacity = 0.62;
-            else panel.material.opacity = 0.9;
+            else panel.material.opacity = panel.userData.isScreen ? 0.96 : 0.9;
         }
     });
 
     renderer.render(scene, camera);
 }
 
-animate();
+buildRings().then(() => {
+    animate();
+}).catch((err) => {
+    showBootError(err);
+});
 
 } catch (err) {
     showBootError(err);

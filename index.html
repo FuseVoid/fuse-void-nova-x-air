@@ -62,7 +62,7 @@
 
     <aside class="hint hint--left scene-chrome">
         <span class="hint__circle">↻</span>
-        <span class="hint__text">Drag a ring<br>Click label to read</span>
+        <span class="hint__text">Drag a ring<br>Click label or screen</span>
     </aside>
     <aside class="hint hint--right scene-chrome">
         <span class="hint__circle">↓</span>
@@ -76,13 +76,22 @@
     <div class="focus-layer" id="focus-layer" hidden>
         <button type="button" class="focus-layer__backdrop" id="focus-close" aria-label="Close"></button>
         <article class="focus-card" id="focus-card">
-            <p class="focus-card__tag" id="focus-tag"></p>
-            <h2 class="focus-card__title" id="focus-title"></h2>
-            <p class="focus-card__stat" id="focus-stat"></p>
-            <p class="focus-card__stat-label" id="focus-stat-label"></p>
-            <hr class="focus-card__rule">
-            <p class="focus-card__body" id="focus-body"></p>
-            <ul class="focus-card__tags" id="focus-tags"></ul>
+            <div id="focus-text">
+                <p class="focus-card__tag" id="focus-tag"></p>
+                <h2 class="focus-card__title" id="focus-title"></h2>
+                <p class="focus-card__stat" id="focus-stat"></p>
+                <p class="focus-card__stat-label" id="focus-stat-label"></p>
+                <hr class="focus-card__rule">
+                <p class="focus-card__body" id="focus-body"></p>
+                <ul class="focus-card__tags" id="focus-tags"></ul>
+            </div>
+            <div id="focus-figure" hidden>
+                <p class="focus-card__tag" id="focus-screen-tag"></p>
+                <figure class="focus-card__figure">
+                    <img id="focus-image" alt="">
+                </figure>
+                <p class="focus-card__screen-caption" id="focus-screen-caption"></p>
+            </div>
         </article>
     </div>
 
