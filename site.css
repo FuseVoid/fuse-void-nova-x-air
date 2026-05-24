@@ -23,7 +23,7 @@ body {
 body.is-dragging { cursor: grabbing; }
 
 body.has-focus #scene-canvas {
-    filter: blur(1px) brightness(0.72);
+    filter: blur(0.4px);
     transition: filter 0.4s ease;
 }
 
@@ -166,9 +166,9 @@ body.has-focus #scene-canvas {
     position: absolute;
     inset: 0;
     border: none;
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(10px) saturate(1.1);
-    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    background: rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     cursor: pointer;
 }
 
@@ -179,15 +179,14 @@ body.has-focus #scene-canvas {
     max-height: min(84vh, 46rem);
     overflow-y: auto;
     padding: clamp(1.75rem, 4.5vw, 2.75rem);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 1.1rem;
-    background: rgba(12, 12, 16, 0.38);
-    backdrop-filter: blur(28px) saturate(1.25);
-    -webkit-backdrop-filter: blur(28px) saturate(1.25);
+    background: rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(12px) saturate(1.12);
+    -webkit-backdrop-filter: blur(12px) saturate(1.12);
     box-shadow:
-        0 24px 80px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        0 0 0 1px color-mix(in srgb, var(--focus-accent, #c8ff4a) 18%, transparent);
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 0 1px color-mix(in srgb, var(--focus-accent, #c8ff4a) 22%, transparent);
     transform: translateY(14px) scale(0.96);
     transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, background 0.3s;
 }
@@ -212,6 +211,7 @@ body.has-focus #scene-canvas {
     letter-spacing: -0.02em;
     text-transform: uppercase;
     margin-bottom: 0.75rem;
+    text-shadow: 0 1px 18px rgba(0, 0, 0, 0.35);
 }
 
 .focus-card__stat {
@@ -237,8 +237,9 @@ body.has-focus #scene-canvas {
 .focus-card__body {
     font-size: clamp(0.95rem, 2.2vw, 1.12rem);
     line-height: 1.65;
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.82);
     margin-bottom: 1.25rem;
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.3);
 }
 
 .focus-card__tags {

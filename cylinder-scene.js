@@ -478,7 +478,8 @@ function resetPanel(panel) {
 function showFocusCard(item, accent) {
     const color = accent || '#c8ff4a';
     focusCard.style.setProperty('--focus-accent', color);
-    focusCard.style.borderColor = `${color}55`;
+    focusCard.style.borderColor = `${color}44`;
+    focusCard.style.background = `color-mix(in srgb, ${color} 6%, rgba(255,255,255,0.04))`;
     focusEls.tag.textContent = item.tag || '';
     focusEls.tag.style.color = color;
     focusEls.title.textContent = item.title;
@@ -506,6 +507,7 @@ function hideFocusCard() {
     document.body.classList.remove('has-focus');
     focusLayer.hidden = true;
     focusLayer.setAttribute('aria-hidden', 'true');
+    focusCard.style.removeProperty('background');
 }
 
 function clearFocus() {
@@ -659,7 +661,7 @@ function animate() {
 
         if (panel.material.map) {
             if (isActive) panel.material.opacity = 1;
-            else if (activePanel) panel.material.opacity = 0.42;
+            else if (activePanel) panel.material.opacity = 0.62;
             else panel.material.opacity = 0.9;
         }
     });
