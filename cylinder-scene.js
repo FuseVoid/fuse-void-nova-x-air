@@ -294,8 +294,8 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020408);
-scene.fog = new THREE.FogExp2(0x03050c, 0.022);
+scene.background = new THREE.Color(0x010208);
+scene.fog = new THREE.FogExp2(0x02040a, 0.018);
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
 camera.position.set(0, 2.5, 11.5);
@@ -303,10 +303,10 @@ camera.lookAt(0, 0, 0);
 
 scene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.35));
 scene.add(new THREE.AmbientLight(0x0c1424, 0.22));
-const sunLight = new THREE.DirectionalLight(0xffb070, 1.35);
-sunLight.position.set(9, 6, 7);
+const sunLight = new THREE.DirectionalLight(0xffc890, 1.55);
+sunLight.position.set(12, 4, 8);
 scene.add(sunLight);
-const coldLight = new THREE.DirectionalLight(0x4a6a9a, 0.38);
+const coldLight = new THREE.DirectionalLight(0x3d5f8a, 0.32);
 coldLight.position.set(-7, -1, -5);
 scene.add(coldLight);
 
@@ -328,41 +328,74 @@ let dragOriginY = 0;
 let dragRing = null;
 let sceneFade = 1;
 
-function createRockGeometry(size) {
-    const jitter = () => 0.55 + Math.random() * 0.85;
-    const corners = [
-        [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
-        [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
-    ].flatMap(([x, y, z]) => [x * jitter() * size, y * jitter() * size, z * jitter() * size]);
+function makeStarSpriteTexture() {
+    const size = 64;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.08, 'rgba(255,252,248,0.85)');
+    g.addColorStop(0.22, 'rgba(220,230,255,0.35)');
+    g.addColorStop(0.5, 'rgba(180,200,255,0.08)');
+    g.addColorStop(1, 'rgba(120,160,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    return tex;
+}
 
-    const indices = [
-        0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6,
-        0, 4, 5, 0, 5, 1, 2, 6, 7, 2, 7, 3,
-        0, 7, 4, 0, 3, 7, 1, 5, 6, 1, 6, 2,
-    ];
+const starSpriteTex = makeStarSpriteTexture();
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(corners, 3));
-    geo.setIndex(indices);
+function createAsteroidGeometry(radius, seed) {
+    const detail = radius > 0.28 ? 2 : 1;
+    const geo = new THREE.IcosahedronGeometry(radius, detail);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = pos.getZ(i);
+        const len = Math.hypot(x, y, z) || 1;
+        const nx = x / len;
+        const ny = y / len;
+        const nz = z / len;
+        const n1 = Math.sin(nx * 6.1 + seed) * Math.cos(ny * 5.3 + seed * 1.7);
+        const n2 = Math.sin(ny * 7.9 + nz * 4.2 + seed * 2.1);
+        const n3 = Math.cos(nz * 5.5 + nx * 8.3 + seed * 0.6);
+        const bump = 0.68 + (n1 * 0.22 + n2 * 0.14 + n3 * 0.12);
+        const crater = Math.max(0, Math.sin(nx * 14 + nz * 11 + seed)) * 0.07;
+        const r = radius * Math.max(0.45, bump - crater);
+        pos.setXYZ(i, nx * r, ny * r, nz * r);
+    }
     geo.computeVertexNormals();
     return geo;
 }
 
-const rockMaterial = new THREE.MeshStandardMaterial({
-    color: 0x060608,
-    emissive: 0x000000,
-    metalness: 0.04,
-    roughness: 0.94,
-    flatShading: true,
-});
+function createAsteroidMaterial(seed) {
+    const tone = 0.035 + (seed % 1) * 0.07;
+    const warm = seed > 0.55;
+    return new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setRGB(
+            tone * (warm ? 1.08 : 0.92),
+            tone * (warm ? 0.95 : 0.98),
+            tone * (warm ? 0.82 : 1.05),
+        ),
+        roughness: 0.86 + (seed % 0.12),
+        metalness: 0.03 + (seed % 0.05),
+        flatShading: false,
+    });
+}
 
 function createFloatingRock() {
-    const size = 0.14 + Math.random() * 0.42;
-    const mesh = new THREE.Mesh(createRockGeometry(size), rockMaterial);
+    const seed = Math.random();
+    const size = 0.12 + Math.random() * 0.48;
+    const mesh = new THREE.Mesh(createAsteroidGeometry(size, seed * 40), createAsteroidMaterial(seed));
     const stackTop = RING_HEIGHT * 0.55 + 1.2;
     const stackBottom = -(RINGS.length - 1) * RING_GAP - 1.1;
     const angle = Math.random() * Math.PI * 2;
-    const radius = 2.2 + Math.random() * 5.8;
+    const radius = 2.4 + Math.random() * 6.2;
     mesh.position.set(
         Math.cos(angle) * radius,
         stackBottom + Math.random() * (stackTop - stackBottom),
@@ -374,54 +407,128 @@ function createFloatingRock() {
         Math.random() * Math.PI * 2,
     );
     mesh.userData = {
-        drift: (Math.random() > 0.5 ? 1 : -1) * (0.08 + Math.random() * 0.16),
-        swayAmp: 0.04 + Math.random() * 0.12,
+        swayAmp: 0.025 + Math.random() * 0.07,
         swayPh: Math.random() * Math.PI * 2,
-        rotVX: (Math.random() - 0.5) * 0.35,
-        rotVY: (Math.random() - 0.5) * 0.42,
-        rotVZ: (Math.random() - 0.5) * 0.28,
+        rotVX: (Math.random() - 0.5) * 0.22,
+        rotVY: (Math.random() - 0.5) * 0.28,
+        rotVZ: (Math.random() - 0.5) * 0.18,
         baseY: mesh.position.y,
         orbitR: radius,
         orbitA: angle,
-        orbitSpeed: (Math.random() - 0.5) * 0.06,
+        orbitSpeed: (Math.random() - 0.5) * 0.035,
     };
     return mesh;
 }
 
 const floatingRocks = new THREE.Group();
-const rockCount = innerWidth < 768 ? 14 : 22;
+const rockCount = innerWidth < 768 ? 16 : 24;
 for (let i = 0; i < rockCount; i += 1) {
     floatingRocks.add(createFloatingRock());
 }
 scene.add(floatingRocks);
 
-function createStarfield(count) {
+function createStarLayer(count, opts) {
     const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const twinkle = new Float32Array(count);
+
     for (let i = 0; i < count; i += 1) {
-        const r = 28 + Math.random() * 52;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-        positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+        let x;
+        let y;
+        let z;
+        if (opts.band && Math.random() < 0.42) {
+            const r = 38 + Math.random() * 42;
+            const a = Math.random() * Math.PI * 2 + 0.35;
+            x = Math.cos(a) * r;
+            z = Math.sin(a) * r;
+            y = (Math.random() - 0.5) * 6.5;
+        } else {
+            const r = opts.minR + Math.random() * (opts.maxR - opts.minR);
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            x = r * Math.sin(phi) * Math.cos(theta);
+            y = r * Math.sin(phi) * Math.sin(theta) * 0.55;
+            z = r * Math.cos(phi);
+        }
+
+        const roll = Math.random();
+        const brightness = Math.pow(Math.random(), opts.dimBias ?? 2.4);
+        let col;
+        if (roll < 0.12) col = new THREE.Color().setHSL(0.58, 0.35, 0.55 + brightness * 0.4);
+        else if (roll < 0.18) col = new THREE.Color().setHSL(0.08, 0.25, 0.5 + brightness * 0.35);
+        else col = new THREE.Color().setHSL(0.62, 0.06, 0.62 + brightness * 0.38);
+
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
+        colors[i * 3] = col.r;
+        colors[i * 3 + 1] = col.g;
+        colors[i * 3 + 2] = col.b;
+        sizes[i] = opts.sizeMin + brightness * opts.sizeRange + (roll > 0.985 ? opts.sizeRange * 1.8 : 0);
+        twinkle[i] = Math.random() * Math.PI * 2;
     }
+
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({
-        color: 0xd8e8ff,
-        size: 0.055,
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geo.setAttribute('twinkle', new THREE.BufferAttribute(twinkle, 1));
+
+    const mat = new THREE.ShaderMaterial({
+        uniforms: {
+            uMap: { value: starSpriteTex },
+            uOpacity: { value: opts.opacity },
+            uTime: { value: 0 },
+            uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        },
+        vertexShader: `
+            attribute float size;
+            attribute float twinkle;
+            attribute vec3 color;
+            uniform float uPixelRatio;
+            varying vec3 vColor;
+            varying float vTwinkle;
+            void main() {
+                vColor = color;
+                vTwinkle = twinkle;
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                gl_Position = projectionMatrix * mv;
+                gl_PointSize = size * uPixelRatio * (320.0 / -mv.z);
+            }
+        `,
+        fragmentShader: `
+            uniform sampler2D uMap;
+            uniform float uOpacity;
+            uniform float uTime;
+            varying vec3 vColor;
+            varying float vTwinkle;
+            void main() {
+                vec4 tex = texture2D(uMap, gl_PointCoord);
+                float pulse = 0.82 + 0.18 * sin(uTime * 1.6 + vTwinkle);
+                float a = tex.a * uOpacity * pulse;
+                if (a < 0.003) discard;
+                gl_FragColor = vec4(vColor * tex.rgb, a);
+            }
+        `,
         transparent: true,
-        opacity: 0.55,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        sizeAttenuation: true,
     });
-    const stars = new THREE.Points(geo, mat);
-    stars.renderOrder = -2;
-    return stars;
+
+    const points = new THREE.Points(geo, mat);
+    points.renderOrder = -2;
+    points.userData.baseOpacity = opts.opacity;
+    return points;
 }
 
-const starfield = createStarfield(innerWidth < 768 ? 1400 : 2600);
+const starfield = new THREE.Group();
+starfield.add(createStarLayer(innerWidth < 768 ? 4200 : 7500, {
+    minR: 32, maxR: 78, sizeMin: 0.012, sizeRange: 0.09, opacity: 0.92, band: true, dimBias: 2.6,
+}));
+starfield.add(createStarLayer(innerWidth < 768 ? 800 : 1400, {
+    minR: 45, maxR: 90, sizeMin: 0.04, sizeRange: 0.16, opacity: 0.55, band: true, dimBias: 1.4,
+}));
 scene.add(starfield);
 
 function wrapTextLines(ctx, text, maxWidth) {
@@ -944,6 +1051,12 @@ function resize() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    const pr = Math.min(window.devicePixelRatio, 2);
+    starfield.children.forEach((layer) => {
+        if (layer.material.uniforms?.uPixelRatio) {
+            layer.material.uniforms.uPixelRatio.value = pr;
+        }
+    });
 }
 window.addEventListener('resize', resize);
 resize();
@@ -994,7 +1107,12 @@ function animate() {
         rock.rotation.z += d.rotVZ * delta;
     });
     floatingRocks.visible = sceneFade > 0.03;
-    starfield.material.opacity = 0.55 * sceneFade;
+    starfield.visible = sceneFade > 0.03;
+    starfield.children.forEach((layer) => {
+        const base = layer.userData.baseOpacity ?? 0.9;
+        layer.material.uniforms.uOpacity.value = base * sceneFade;
+        layer.material.uniforms.uTime.value = t;
+    });
 
     renderer.render(scene, camera);
 }
