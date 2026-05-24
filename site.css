@@ -22,6 +22,11 @@ body {
 
 body.is-dragging { cursor: grabbing; }
 
+body.has-focus #scene-canvas {
+    filter: blur(1px) brightness(0.72);
+    transition: filter 0.4s ease;
+}
+
 #scene-canvas {
     position: fixed;
     inset: 0;
@@ -29,6 +34,7 @@ body.is-dragging { cursor: grabbing; }
     height: 100%;
     z-index: 1;
     touch-action: none;
+    transition: filter 0.4s ease;
 }
 
 .scroll-spacer {
@@ -160,27 +166,30 @@ body.is-dragging { cursor: grabbing; }
     position: absolute;
     inset: 0;
     border: none;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
     cursor: pointer;
 }
 
 .focus-card {
     position: relative;
     z-index: 1;
-    width: min(42rem, 92vw);
-    max-height: min(82vh, 44rem);
+    width: min(44rem, 94vw);
+    max-height: min(84vh, 46rem);
     overflow-y: auto;
-    padding: clamp(1.5rem, 4vw, 2.5rem);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 1rem;
-    background: rgba(8, 8, 10, 0.62);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-    transform: translateY(12px) scale(0.97);
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s;
+    padding: clamp(1.75rem, 4.5vw, 2.75rem);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 1.1rem;
+    background: rgba(12, 12, 16, 0.38);
+    backdrop-filter: blur(28px) saturate(1.25);
+    -webkit-backdrop-filter: blur(28px) saturate(1.25);
+    box-shadow:
+        0 24px 80px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 0 0 1px color-mix(in srgb, var(--focus-accent, #c8ff4a) 18%, transparent);
+    transform: translateY(14px) scale(0.96);
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, background 0.3s;
 }
 
 .focus-layer.is-open .focus-card {

@@ -248,10 +248,10 @@ const RINGS = [
 ];
 
 const RING_RADIUS = 4.55;
-const RING_HEIGHT = 1.28;
+const RING_HEIGHT = 1.38;
 const RING_GAP = 3.35;
-const PANEL_W = 2.15;
-const PANEL_H = 0.68;
+const PANEL_W = 2.75;
+const PANEL_H = 0.92;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -336,38 +336,40 @@ function truncateLine(ctx, text, maxWidth) {
 
 function makeCompactPanelTexture(item, accent) {
     const c = document.createElement('canvas');
-    c.width = 420;
-    c.height = 128;
+    c.width = 500;
+    c.height = 168;
     const ctx = c.getContext('2d');
-    const pad = 14;
+    const pad = 16;
     const w = c.width - pad * 2;
 
     ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(4, 4, c.width - 8, c.height - 8);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    let y = 10;
+    let y = 12;
     if (item.tag) {
         ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.88;
-        ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
+        ctx.globalAlpha = 0.9;
+        ctx.font = '600 13px "JetBrains Mono", ui-monospace, monospace';
         ctx.fillText(truncateLine(ctx, item.tag.toUpperCase(), w), pad, y);
-        y += 16;
+        y += 18;
     }
 
     ctx.globalAlpha = 1;
     ctx.fillStyle = accent;
-    ctx.font = '800 22px Inter, system-ui, sans-serif';
+    ctx.font = '800 28px Inter, system-ui, sans-serif';
     const titleLines = wrapTextLines(ctx, item.title, w).slice(0, 2);
-    y = drawLines(ctx, titleLines, pad, y, 24) + 2;
+    y = drawLines(ctx, titleLines, pad, y, 30) + 4;
 
     if (item.stat) {
-        ctx.font = '700 18px Inter, system-ui, sans-serif';
+        ctx.font = '700 22px Inter, system-ui, sans-serif';
         ctx.fillText(truncateLine(ctx, item.stat, w), pad, y);
-        y += 22;
+        y += 26;
         if (item.statLabel) {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.font = '400 10px Inter, system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.font = '400 12px Inter, system-ui, sans-serif';
             ctx.fillText(truncateLine(ctx, item.statLabel, w), pad, y);
         }
     }
@@ -473,16 +475,10 @@ function resetPanel(panel) {
     panel.userData.pop = 0;
 }
 
-function hideFocusCard() {
-    focusLayer.classList.remove('is-open');
-    focusLayer.hidden = true;
-    focusLayer.setAttribute('aria-hidden', 'true');
-}
-
 function showFocusCard(item, accent) {
     const color = accent || '#c8ff4a';
-    focusCard.style.borderColor = `${color}44`;
-    focusCard.style.boxShadow = `0 24px 80px rgba(0,0,0,0.45), 0 0 0 1px ${color}22 inset`;
+    focusCard.style.setProperty('--focus-accent', color);
+    focusCard.style.borderColor = `${color}55`;
     focusEls.tag.textContent = item.tag || '';
     focusEls.tag.style.color = color;
     focusEls.title.textContent = item.title;
@@ -499,9 +495,17 @@ function showFocusCard(item, accent) {
         li.textContent = tag;
         focusEls.tags.appendChild(li);
     });
+    document.body.classList.add('has-focus');
     focusLayer.hidden = false;
     focusLayer.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => focusLayer.classList.add('is-open'));
+}
+
+function hideFocusCard() {
+    focusLayer.classList.remove('is-open');
+    document.body.classList.remove('has-focus');
+    focusLayer.hidden = true;
+    focusLayer.setAttribute('aria-hidden', 'true');
 }
 
 function clearFocus() {
@@ -637,23 +641,27 @@ function animate() {
     });
 
     clickable.forEach((panel) => {
-        const targetPop = panel.userData.focused ? 1 : 0;
+        const isActive = panel === activePanel;
+        const targetPop = isActive ? 1 : 0;
         panel.userData.pop += (targetPop - panel.userData.pop) * 0.09;
 
         const home = panel.userData.home;
         const outward = home.clone().normalize();
-        const popDist = 0.35 * panel.userData.pop;
+        const popDist = 1.05 * panel.userData.pop;
         panel.position.set(
             home.x + outward.x * popDist,
-            home.y,
+            home.y + Math.sin(t * 2 + panel.id) * 0.015 * panel.userData.pop,
             home.z + outward.z * popDist
         );
 
-        const scale = 1 + panel.userData.pop * 0.12;
+        const scale = 1 + panel.userData.pop * 0.42;
         panel.scale.set(scale, scale, scale);
 
-        const baseOp = panel.userData.focused ? 0.35 : 0.88;
-        if (panel.material.map) panel.material.opacity = baseOp;
+        if (panel.material.map) {
+            if (isActive) panel.material.opacity = 1;
+            else if (activePanel) panel.material.opacity = 0.42;
+            else panel.material.opacity = 0.9;
+        }
     });
 
     renderer.render(scene, camera);
