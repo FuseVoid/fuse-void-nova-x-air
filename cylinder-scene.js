@@ -267,6 +267,7 @@ const SCREEN_SLOT = 4;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
+const cylinderGap = document.getElementById('cylinder-gap');
 const scrollBar = document.getElementById('scroll-bar');
 const focusLayer = document.getElementById('focus-layer');
 const focusClose = document.getElementById('focus-close');
@@ -607,12 +608,20 @@ function syncScrollFromPage() {
     const y = window.scrollY;
     scrollTarget = THREE.MathUtils.clamp(y / max, 0, 1);
 
-    const fadeStart = Math.max(0, max - innerHeight);
-    const fade = y <= fadeStart ? 1 : Math.max(0, 1 - (y - fadeStart) / innerHeight);
+    const gapTop = cylinderGap?.offsetTop ?? max;
+    const fadeStart = Math.max(0, max - innerHeight * 1.05);
+    let fade = 1;
+    if (y >= gapTop - innerHeight * 0.15) {
+        fade = 0;
+    } else if (y > fadeStart) {
+        fade = Math.max(0, 1 - (y - fadeStart) / (gapTop - fadeStart - innerHeight * 0.15));
+    }
     canvas.style.opacity = String(fade);
-    canvas.style.pointerEvents = fade > 0.15 ? 'auto' : 'none';
+    canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
 
-    const atEnd = y >= fadeStart + innerHeight * 0.35;
+    document.body.classList.toggle('past-cylinder', y >= gapTop - innerHeight * 0.1);
+
+    const atEnd = y >= (document.getElementById('site-end')?.offsetTop ?? gapTop) - innerHeight * 0.5;
     document.body.classList.toggle('at-site-end', atEnd);
 }
 
