@@ -186,6 +186,113 @@ body.has-focus #scene-canvas {
     background: var(--bg);
 }
 
+.site-gallery {
+    position: relative;
+    z-index: 5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem;
+    padding: 5rem 1.5rem 3rem;
+    background: var(--bg);
+}
+
+.site-gallery__head {
+    text-align: center;
+    max-width: 36rem;
+}
+
+.site-gallery__section {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.55rem;
+}
+
+.site-gallery__title {
+    font-size: clamp(1.35rem, 3.5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+}
+
+.site-gallery__caption {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.site-gallery__stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    width: min(72rem, 100%);
+}
+
+.site-gallery__arrow {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.25s, background 0.25s;
+}
+
+.site-gallery__arrow:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.site-gallery__frame {
+    flex: 1;
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.site-gallery__frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.site-gallery__dots {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.site-gallery__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+    transition: background 0.25s, transform 0.25s;
+}
+
+.site-gallery__dot.is-active {
+    background: var(--accent);
+    transform: scale(1.15);
+}
+
 .site-footer {
     width: min(40rem, 100%);
     display: flex;
@@ -407,5 +514,7 @@ body.has-focus #scene-canvas {
     .site-action { font-size: 0.52rem; padding: 0.42rem 0.65rem; letter-spacing: 0.16em; }
     .hint { display: none; }
     .site-end { padding: 4.5rem 1rem 2.5rem; }
+    .site-gallery { padding: 4.5rem 1rem 2.5rem; gap: 1.25rem; }
+    .site-gallery__arrow { width: 2.35rem; height: 2.35rem; font-size: 1.1rem; }
     .site-footer__privacy { font-size: 0.58rem; }
 }

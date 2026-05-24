@@ -26,6 +26,22 @@
 
     <div class="scroll-spacer" id="scroll-spacer"></div>
 
+    <section class="site-gallery" id="site-gallery" aria-label="App screenshots">
+        <div class="site-gallery__head">
+            <p class="site-gallery__section">// Screens</p>
+            <h2 class="site-gallery__title">NOVA-X AIR on iPad</h2>
+            <p class="site-gallery__caption" id="gallery-caption">Session · 8×8 clip grid</p>
+        </div>
+        <div class="site-gallery__stage">
+            <button type="button" class="site-gallery__arrow" id="gallery-prev" aria-label="Previous screen">‹</button>
+            <figure class="site-gallery__frame">
+                <img id="gallery-img" src="images/nova-1-session.png" alt="NOVA-X AIR Session mode on iPad">
+            </figure>
+            <button type="button" class="site-gallery__arrow" id="gallery-next" aria-label="Next screen">›</button>
+        </div>
+        <div class="site-gallery__dots" id="gallery-dots" aria-hidden="true"></div>
+    </section>
+
     <section class="site-end" id="site-end" aria-label="Site information">
         <footer class="site-footer">
             <p class="site-footer__privacy">Fuse Void is an offline-first engine. We do not use cookies. We do not track you. Your creativity is yours alone.</p>
@@ -80,6 +96,43 @@
         document.getElementById('link-app-store').href = SITE_LINKS.appStore;
         document.getElementById('link-instagram').href = SITE_LINKS.instagram;
         document.getElementById('link-youtube').href = SITE_LINKS.youtube;
+
+        const GALLERY = [
+            { src: 'images/nova-1-session.png', alt: 'NOVA-X AIR Session mode on iPad', caption: 'Session · 8×8 clip grid' },
+            { src: 'images/nova-2-note.png', alt: 'NOVA-X AIR Note mode on iPad', caption: 'Note · scale lock · CH 2' },
+            { src: 'images/nova-3-chord.png', alt: 'NOVA-X AIR Chord mode on iPad', caption: 'Chord · memory slots · Min7' },
+            { src: 'images/nova-4-custom.png', alt: 'NOVA-X AIR Custom mode on iPad', caption: 'Custom · mixer · device pages' },
+            { src: 'images/nova-5-sequencer.png', alt: 'NOVA-X AIR Sequencer on iPad', caption: 'Sequencer · 4 tracks · 32 steps' },
+        ];
+
+        const galleryImg = document.getElementById('gallery-img');
+        const galleryCaption = document.getElementById('gallery-caption');
+        const galleryDots = document.getElementById('gallery-dots');
+        let galleryIndex = 0;
+
+        GALLERY.forEach((_, i) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'site-gallery__dot';
+            dot.setAttribute('aria-label', `Screen ${i + 1}`);
+            dot.addEventListener('click', () => setGallery(i));
+            galleryDots.appendChild(dot);
+        });
+
+        function setGallery(index) {
+            galleryIndex = (index + GALLERY.length) % GALLERY.length;
+            const item = GALLERY[galleryIndex];
+            galleryImg.src = item.src;
+            galleryImg.alt = item.alt;
+            galleryCaption.textContent = item.caption;
+            galleryDots.querySelectorAll('.site-gallery__dot').forEach((dot, i) => {
+                dot.classList.toggle('is-active', i === galleryIndex);
+            });
+        }
+
+        document.getElementById('gallery-prev').addEventListener('click', () => setGallery(galleryIndex - 1));
+        document.getElementById('gallery-next').addEventListener('click', () => setGallery(galleryIndex + 1));
+        setGallery(0);
     </script>
 </body>
 </html>
