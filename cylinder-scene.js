@@ -115,6 +115,7 @@ scene.add(rim);
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const clickable = [];
+const ringBodies = [];
 const ringGroups = [];
 
 let scrollTarget = 0;
@@ -123,7 +124,8 @@ let activePanel = null;
 let pausedRing = null;
 let isDragging = false;
 let dragLastX = 0;
-let manualSpin = 0;
+let dragOriginX = 0;
+let dragRing = null;
 
 function makePanelTexture(title, body, accent) {
     const c = document.createElement('canvas');
@@ -170,6 +172,12 @@ function createRing(config, y, index) {
     group.userData.speed = config.speed;
     group.userData.rotationY = index * 0.4;
     group.userData.paused = false;
+    group.userData.dragVelocity = 0;
+
+    const tagRingPart = (mesh) => {
+        mesh.userData.ringRoot = group;
+        ringBodies.push(mesh);
+    };
 
     const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 72, 1, true);
     const ringMat = new THREE.MeshStandardMaterial({
@@ -182,6 +190,7 @@ function createRing(config, y, index) {
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.y = Math.PI * 0.5;
+    tagRingPart(ringMesh);
     group.add(ringMesh);
 
     const edgeGeo = new THREE.TorusGeometry(RING_RADIUS, 0.028, 8, 96);
@@ -189,9 +198,11 @@ function createRing(config, y, index) {
     const topEdge = new THREE.Mesh(edgeGeo, edgeMat);
     topEdge.rotation.x = Math.PI / 2;
     topEdge.position.y = RING_HEIGHT * 0.48;
+    tagRingPart(topEdge);
     group.add(topEdge);
     const botEdge = topEdge.clone();
     botEdge.position.y = -RING_HEIGHT * 0.48;
+    tagRingPart(botEdge);
     group.add(botEdge);
 
     config.items.forEach((item, i) => {
@@ -211,6 +222,7 @@ function createRing(config, y, index) {
 
         panel.userData = {
             ring: group,
+            ringRoot: group,
             home: panel.position.clone(),
             homeScale: 1,
             accent: config.accent,
@@ -267,22 +279,45 @@ function focusPanel(panel) {
     pauseRing(pausedRing);
 }
 
+function setPointerFromEvent(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+function pickRingAt(clientX, clientY) {
+    setPointerFromEvent(clientX, clientY);
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects([...clickable, ...ringBodies], false);
+    if (!hits.length) return null;
+    return hits[0].object.userData.ringRoot || hits[0].object.userData.ring || null;
+}
+
+function applyRingDrag(group, dx) {
+    if (!group || !dx) return;
+    const gain = 0.009;
+    const momentum = 0.018;
+    group.userData.rotationY += dx * gain;
+    group.userData.dragVelocity += dx * momentum;
+}
+
 function onPointerDown(e) {
     isDragging = true;
+    dragOriginX = e.clientX;
     dragLastX = e.clientX;
+    dragRing = pickRingAt(e.clientX, e.clientY);
     document.body.classList.add('is-dragging');
 }
 
 function onPointerUp(e) {
     if (!isDragging) return;
-    const moved = Math.abs(e.clientX - dragLastX);
+    const moved = Math.abs(e.clientX - dragOriginX);
     isDragging = false;
+    dragRing = null;
     document.body.classList.remove('is-dragging');
     if (moved > 6) return;
 
-    const rect = canvas.getBoundingClientRect();
-    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    setPointerFromEvent(e.clientX, e.clientY);
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(clickable, false);
     if (hits.length) {
@@ -294,7 +329,8 @@ function onPointerUp(e) {
 
 function onPointerMove(e) {
     if (!isDragging) return;
-    if (!pausedRing) manualSpin += (e.clientX - dragLastX) * 0.004;
+    const dx = e.clientX - dragLastX;
+    if (dragRing) applyRingDrag(dragRing, dx);
     dragLastX = e.clientX;
 }
 
@@ -352,7 +388,14 @@ function animate() {
         if (!group.userData.paused) {
             group.userData.rotationY += group.userData.speed * 60 * delta;
         }
-        group.rotation.y = group.userData.rotationY + (group.userData.paused ? 0 : manualSpin);
+        if (group.userData.dragVelocity) {
+            group.userData.rotationY += group.userData.dragVelocity * delta * 60;
+            group.userData.dragVelocity *= 0.93;
+            if (Math.abs(group.userData.dragVelocity) < 0.0002) {
+                group.userData.dragVelocity = 0;
+            }
+        }
+        group.rotation.y = group.userData.rotationY;
     });
 
     clickable.forEach((panel) => {
@@ -376,7 +419,6 @@ function animate() {
         }
     });
 
-    manualSpin *= 0.96;
     renderer.render(scene, camera);
 }
 
