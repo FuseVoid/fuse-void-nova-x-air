@@ -353,19 +353,50 @@ let starMouseX = innerWidth * 0.5;
 let starMouseY = innerHeight * 0.5;
 const _starProj = new THREE.Vector3();
 
-function addStarSample(x, y, z, brightness, spectral, positions, colors, _sizes, _twinkle, idx) {
+function starColor(spectral, brightness) {
+    const b = brightness;
+    switch (spectral) {
+    case 'nova_cyan':
+        return new THREE.Color().setHSL(0.52, 0.72, 0.48 + b * 0.38);
+    case 'supernova':
+        return new THREE.Color().setHSL(0.03, 0.82, 0.42 + b * 0.42);
+    case 'nebula':
+        return new THREE.Color().setHSL(0.86, 0.58, 0.46 + b * 0.36);
+    case 'blue':
+        return new THREE.Color().setHSL(0.58, 0.48, 0.62 + b * 0.32);
+    case 'gold':
+        return new THREE.Color().setHSL(0.13, 0.32, 0.68 + b * 0.28);
+    case 'warm':
+        return new THREE.Color().setHSL(0.07, 0.52, 0.55 + b * 0.3);
+    case 'ember':
+        return new THREE.Color().setHSL(0.02, 0.45, 0.38 + b * 0.28);
+    case 'dim':
+        return new THREE.Color().setHSL(0.62, 0.06, 0.28 + b * 0.22);
+    default:
+        return new THREE.Color().setHSL(0.62, 0.05, 0.62 + b * 0.28);
+    }
+}
+
+function pickSpectral(roll) {
+    if (roll < 0.035) return 'nova_cyan';
+    if (roll < 0.065) return 'supernova';
+    if (roll < 0.09) return 'nebula';
+    if (roll < 0.17) return 'blue';
+    if (roll < 0.32) return 'white';
+    if (roll < 0.48) return 'gold';
+    if (roll < 0.62) return 'warm';
+    if (roll < 0.78) return 'ember';
+    return 'dim';
+}
+
+function addStarSample(x, y, z, brightness, spectral, positions, colors, idx) {
     starParticles.push({
         bx: x, by: y, bz: z,
         ox: 0, oy: 0, oz: 0,
         brightness,
         layer: 'field',
     });
-    let col;
-    if (spectral === 'blue') col = new THREE.Color().setHSL(0.58, 0.55, 0.72 + brightness * 0.28);
-    else if (spectral === 'warm') col = new THREE.Color().setHSL(0.09, 0.45, 0.68 + brightness * 0.3);
-    else if (spectral === 'gold') col = new THREE.Color().setHSL(0.12, 0.28, 0.75 + brightness * 0.25);
-    else col = new THREE.Color().setHSL(0.62, 0.08, 0.78 + brightness * 0.22);
-
+    const col = starColor(spectral, brightness);
     positions[idx * 3] = x;
     positions[idx * 3 + 1] = y;
     positions[idx * 3 + 2] = z;
@@ -375,62 +406,78 @@ function addStarSample(x, y, z, brightness, spectral, positions, colors, _sizes,
 }
 
 function buildStarfield() {
-    const count = innerWidth < 768 ? 4800 : 8200;
+    const count = innerWidth < 768 ? 1100 : 2100;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     starParticles.length = 0;
+    const placed = [];
+    const minSep = innerWidth < 768 ? 4.2 : 3.6;
 
-    const clusters = [
-        { x: -22, y: 14, z: -55, spread: 14 },
-        { x: 28, y: -6, z: -68, spread: 18 },
-        { x: -8, y: -18, z: -60, spread: 11 },
-        { x: 16, y: 22, z: -75, spread: 16 },
-        { x: -34, y: 4, z: -62, spread: 12 },
-    ];
-    const clusterStars = Math.floor(count * 0.38);
+    const canPlace = (x, y, z) => {
+        for (let i = 0; i < placed.length; i += 1) {
+            const p = placed[i];
+            const dx = x - p.x;
+            const dy = y - p.y;
+            const dz = z - p.z;
+            if (dx * dx + dy * dy + dz * dz < minSep * minSep) return false;
+        }
+        placed.push({ x, y, z });
+        return true;
+    };
+
+    const tryAddStar = (x, y, z, brightness, spectral, idxRef) => {
+        if (!canPlace(x, y, z)) return idxRef;
+        addStarSample(x, y, z, brightness, spectral, positions, colors, idxRef);
+        return idxRef + 1;
+    };
+
     let idx = 0;
+    const openClusters = [
+        { x: -30, y: 18, z: -58, spread: 26, stars: 14 },
+        { x: 34, y: -10, z: -72, spread: 22, stars: 11 },
+    ];
+    openClusters.forEach((cl) => {
+        for (let n = 0; n < cl.stars && idx < count; n += 1) {
+            let attempts = 0;
+            while (attempts < 12 && idx < count) {
+                attempts += 1;
+                const brightness = 0.35 + Math.pow(Math.random(), 2.2) * 0.55;
+                const spectral = pickSpectral(Math.random());
+                const x = cl.x + (Math.random() - 0.5) * cl.spread;
+                const y = cl.y + (Math.random() - 0.5) * cl.spread;
+                const z = cl.z + (Math.random() - 0.5) * cl.spread * 0.55;
+                idx = tryAddStar(x, y, z, brightness, spectral, idx);
+                if (attempts > 4) break;
+            }
+        }
+    });
 
-    for (let c = 0; c < clusterStars; c += 1) {
-        const cl = clusters[c % clusters.length];
-        const brightness = Math.pow(Math.random(), 1.8);
-        const roll = Math.random();
-        const spectral = roll < 0.08 ? 'blue' : roll < 0.2 ? 'warm' : roll < 0.45 ? 'gold' : 'white';
-        addStarSample(
-            cl.x + (Math.random() - 0.5) * cl.spread,
-            cl.y + (Math.random() - 0.5) * cl.spread,
-            cl.z + (Math.random() - 0.5) * cl.spread * 0.7,
-            brightness,
-            spectral,
-            positions, colors, null, null, idx,
-        );
-        idx += 1;
-    }
-
-    while (idx < count) {
-        const r = 22 + Math.random() * 55;
+    let attempts = 0;
+    while (idx < count && attempts < count * 14) {
+        attempts += 1;
+        const r = 18 + Math.random() * 62;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.sin(phi) * Math.sin(theta) * 0.65;
-        const z = -(25 + Math.random() * 55);
-        const brightness = Math.pow(Math.random(), 2.8);
-        const roll = Math.random();
-        const spectral = roll < 0.06 ? 'blue' : roll < 0.14 ? 'warm' : roll < 0.32 ? 'gold' : 'white';
-        addStarSample(x, y, z, brightness, spectral, positions, colors, null, null, idx);
-        idx += 1;
+        const y = r * Math.sin(phi) * Math.sin(theta) * 0.55;
+        const z = -(28 + Math.random() * 52);
+        const brightness = Math.pow(Math.random(), 3.4);
+        const spectral = pickSpectral(Math.random());
+        idx = tryAddStar(x, y, z, brightness, spectral, idx);
     }
 
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('position', new THREE.BufferAttribute(positions.slice(0, idx * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors.slice(0, idx * 3), 3));
+    starParticles.length = idx;
 
     const mat = new THREE.PointsMaterial({
         map: starSpriteTex,
-        size: innerWidth < 768 ? 4.2 : 5.5,
+        size: innerWidth < 768 ? 2.1 : 2.6,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
-        opacity: 1,
+        opacity: 0.92,
         depthWrite: false,
         depthTest: true,
         fog: false,
@@ -442,26 +489,45 @@ function buildStarfield() {
     points.renderOrder = 0;
     points.frustumCulled = false;
 
-    const fieldCount = starParticles.length;
-    const brightCount = innerWidth < 768 ? 280 : 520;
+    const fieldCount = idx;
+    const brightCount = innerWidth < 768 ? 38 : 72;
     const bPos = new Float32Array(brightCount * 3);
     const bCol = new Float32Array(brightCount * 3);
-    for (let i = 0; i < brightCount; i += 1) {
-        const src = starParticles[Math.floor(Math.random() * fieldCount)];
-        const brightness = 0.75 + Math.random() * 0.25;
-        const x = src.bx + (Math.random() - 0.5) * 2.5;
-        const y = src.by + (Math.random() - 0.5) * 2.5;
-        const z = src.bz + (Math.random() - 0.5) * 1.5;
-        addStarSample(x, y, z, brightness, Math.random() < 0.2 ? 'blue' : 'gold', bPos, bCol, null, null, i);
-        starParticles[fieldCount + i].layer = 'bright';
+    const brightPlaced = [];
+    let bIdx = 0;
+    let bAttempts = 0;
+    while (bIdx < brightCount && bAttempts < brightCount * 30) {
+        bAttempts += 1;
+        const r = 16 + Math.random() * 58;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const x = r * Math.sin(phi) * Math.cos(theta);
+        const y = r * Math.sin(phi) * Math.sin(theta) * 0.5;
+        const z = -(30 + Math.random() * 48);
+        let ok = true;
+        for (let j = 0; j < brightPlaced.length; j += 1) {
+            const p = brightPlaced[j];
+            const dx = x - p.x;
+            const dy = y - p.y;
+            const dz = z - p.z;
+            if (dx * dx + dy * dy + dz * dz < 8 * 8) ok = false;
+        }
+        if (!ok) continue;
+        brightPlaced.push({ x, y, z });
+        const brightness = 0.78 + Math.random() * 0.22;
+        const roll = Math.random();
+        const spectral = roll < 0.12 ? 'nova_cyan' : roll < 0.22 ? 'supernova' : roll < 0.32 ? 'nebula' : roll < 0.5 ? 'blue' : 'gold';
+        addStarSample(x, y, z, brightness, spectral, bPos, bCol, bIdx);
+        starParticles[fieldCount + bIdx].layer = 'bright';
+        bIdx += 1;
     }
 
     const bGeo = new THREE.BufferGeometry();
-    bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
-    bGeo.setAttribute('color', new THREE.BufferAttribute(bCol, 3));
+    bGeo.setAttribute('position', new THREE.BufferAttribute(bPos.slice(0, bIdx * 3), 3));
+    bGeo.setAttribute('color', new THREE.BufferAttribute(bCol.slice(0, bIdx * 3), 3));
     const bMat = new THREE.PointsMaterial({
         map: starSpriteTex,
-        size: innerWidth < 768 ? 9 : 11,
+        size: innerWidth < 768 ? 5.5 : 6.8,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
@@ -484,7 +550,7 @@ function buildStarfield() {
         mat,
         bMat,
         fieldCount,
-        brightCount,
+        brightCount: bIdx,
     };
 }
 
