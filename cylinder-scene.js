@@ -90,6 +90,7 @@ const ringGroups = [];
 let scrollTarget = 0;
 let scrollCurrent = 0;
 let activePanel = null;
+let pausedRing = null;
 let isDragging = false;
 let dragLastX = 0;
 let manualSpin = 0;
@@ -133,10 +134,12 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     ctx.fillText(line.trim(), x, yy);
 }
 
-function createRing(config, y) {
+function createRing(config, y, index) {
     const group = new THREE.Group();
     group.position.y = y;
     group.userData.speed = config.speed;
+    group.userData.rotationY = index * 0.4;
+    group.userData.paused = false;
 
     const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 72, 1, true);
     const ringMat = new THREE.MeshStandardMaterial({
@@ -195,19 +198,43 @@ function createRing(config, y) {
 }
 
 const totalHeight = (RINGS.length - 1) * RING_GAP;
-RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP));
+RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i));
 
 scrollSpacer.style.height = `${(RINGS.length + 1) * 100}vh`;
+
+function resumeRing(group) {
+    if (group) group.userData.paused = false;
+}
+
+function pauseRing(group) {
+    if (group) group.userData.paused = true;
+}
 
 function resetPanel(panel) {
     panel.userData.focused = false;
     panel.userData.pop = 0;
 }
 
+function clearFocus() {
+    if (activePanel) resetPanel(activePanel);
+    if (pausedRing) resumeRing(pausedRing);
+    activePanel = null;
+    pausedRing = null;
+}
+
 function focusPanel(panel) {
-    if (activePanel && activePanel !== panel) resetPanel(activePanel);
+    if (activePanel === panel) {
+        clearFocus();
+        return;
+    }
+
+    if (activePanel) resetPanel(activePanel);
+    if (pausedRing && pausedRing !== panel.userData.ring) resumeRing(pausedRing);
+
     activePanel = panel;
+    pausedRing = panel.userData.ring;
     panel.userData.focused = true;
+    pauseRing(pausedRing);
 }
 
 function onPointerDown(e) {
@@ -230,15 +257,14 @@ function onPointerUp(e) {
     const hits = raycaster.intersectObjects(clickable, false);
     if (hits.length) {
         focusPanel(hits[0].object);
-    } else if (activePanel) {
-        resetPanel(activePanel);
-        activePanel = null;
+    } else {
+        clearFocus();
     }
 }
 
 function onPointerMove(e) {
     if (!isDragging) return;
-    manualSpin += (e.clientX - dragLastX) * 0.004;
+    if (!pausedRing) manualSpin += (e.clientX - dragLastX) * 0.004;
     dragLastX = e.clientX;
 }
 
@@ -281,6 +307,7 @@ const clock = new THREE.Clock();
 
 function animate() {
     requestAnimationFrame(animate);
+    const delta = clock.getDelta();
     const t = clock.getElapsedTime();
 
     scrollCurrent += (scrollTarget - scrollCurrent) * 0.07;
@@ -291,8 +318,11 @@ function animate() {
     camera.position.x = Math.sin(t * 0.12) * 0.35;
     camera.lookAt(0, camY - 1.2, 0);
 
-    ringGroups.forEach((group, i) => {
-        group.rotation.y = t * group.userData.speed * 60 + manualSpin + i * 0.4;
+    ringGroups.forEach((group) => {
+        if (!group.userData.paused) {
+            group.userData.rotationY += group.userData.speed * 60 * delta;
+        }
+        group.rotation.y = group.userData.rotationY + (group.userData.paused ? 0 : manualSpin);
     });
 
     clickable.forEach((panel) => {
