@@ -257,12 +257,14 @@ const RING_RADIUS = 4.55;
 const RING_HEIGHT = 1.38;
 const RING_GAP = 3.35;
 const PANEL_W = 2.75;
-const PANEL_H = 0.92;
-const PANEL_ARC = PANEL_W;
-const SCREEN_ARC = 1.42;
-const SCREEN_H = 1.18;
-const RING_SLOTS = 6;
-const SCREEN_SLOT = 5;
+const PANEL_H = 0.72;
+const PANEL_ARC = 2.05;
+const SCREEN_ARC = 1.15;
+const SCREEN_H = 0.86;
+const PANEL_RADIUS = RING_RADIUS + 0.058;
+const RING_SLOTS = 10;
+const TEXT_SLOTS = [0, 1, 2, 3];
+const SCREEN_SLOT = 8;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -451,6 +453,10 @@ function createCurvedPanelGeometry(arcWidth, height, radius, segments = 18) {
     );
 }
 
+function createFlatPanelGeometry(width, height) {
+    return new THREE.PlaneGeometry(width, height);
+}
+
 function slotAngle(slot) {
     return (slot / RING_SLOTS) * Math.PI * 2 + 0.15;
 }
@@ -460,19 +466,28 @@ function addCurvedPanel(group, config, item, angle, options = {}) {
     const tex = options.texture;
     const arcW = isScreen ? SCREEN_ARC : PANEL_ARC;
     const h = isScreen ? SCREEN_H : PANEL_H;
-    const geo = createCurvedPanelGeometry(arcW, h, RING_RADIUS, isScreen ? 14 : 18);
+    const flatW = isScreen ? 2.15 : 2.35;
+    const geo = createCurvedPanelGeometry(arcW, h, PANEL_RADIUS, isScreen ? 16 : 20);
+    const flatGeo = isScreen
+        ? createFlatPanelGeometry(flatW, flatW)
+        : createFlatPanelGeometry(flatW, h);
     const mat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: true,
         depthWrite: false,
+        depthTest: true,
         side: THREE.DoubleSide,
-        opacity: isScreen ? 0.88 : 0.9,
+        opacity: isScreen ? 0.9 : 0.92,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
     });
 
     const holder = new THREE.Object3D();
     holder.rotation.y = angle;
 
     const panel = new THREE.Mesh(geo, mat);
+    panel.renderOrder = 2;
     holder.add(panel);
     group.add(holder);
 
@@ -486,6 +501,10 @@ function addCurvedPanel(group, config, item, angle, options = {}) {
         focused: false,
         pop: 0,
         isScreen,
+        curvedGeo: geo,
+        flatGeo,
+        flatW,
+        height: h,
     };
     clickable.push(panel);
     return panel;
@@ -513,11 +532,12 @@ function createRing(config, y, index, screenImg) {
         roughness: 0.65,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.48,
+        opacity: 0.34,
         depthWrite: false,
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
     ringMesh.rotation.y = Math.PI * 0.5;
+    ringMesh.renderOrder = 0;
     tagRingPart(ringMesh);
     group.add(ringMesh);
 
@@ -536,7 +556,7 @@ function createRing(config, y, index, screenImg) {
 
     config.items.forEach((item, i) => {
         const tex = makeCompactPanelTexture(item, config.accent);
-        addCurvedPanel(group, config, item, slotAngle(i), { texture: tex });
+        addCurvedPanel(group, config, item, slotAngle(TEXT_SLOTS[i]), { texture: tex });
     });
 
     if (config.screen && screenImg) {
@@ -598,9 +618,34 @@ function pauseRing(group) {
     if (group) group.userData.paused = true;
 }
 
+function updatePanelShape(panel, pop) {
+    const { curvedGeo, flatGeo, flatW, height, isScreen } = panel.userData;
+    if (!curvedGeo || !flatGeo) return;
+
+    if (pop > 0.72) {
+        if (panel.geometry !== flatGeo) {
+            panel.geometry = flatGeo;
+        }
+        const lift = isScreen ? 0.42 : 0.34;
+        panel.position.z = lift;
+        const s = 1 + (pop - 0.72) * 0.18;
+        panel.scale.set(s, s, s);
+        return;
+    }
+
+    if (panel.geometry !== curvedGeo) {
+        panel.geometry = curvedGeo;
+    }
+    const lift = (isScreen ? 0.05 : 0.035) * pop;
+    panel.position.z = lift;
+    const scale = 1 + pop * (isScreen ? 0.08 : 0.06);
+    panel.scale.set(scale, scale, scale);
+}
+
 function resetPanel(panel) {
     panel.userData.focused = false;
     panel.userData.pop = 0;
+    updatePanelShape(panel, 0);
 }
 
 function showFocusCard(item, accent) {
@@ -779,17 +824,12 @@ function animate() {
         const isActive = panel === activePanel;
         const targetPop = isActive ? 1 : 0;
         panel.userData.pop += (targetPop - panel.userData.pop) * 0.09;
-
-        const popLift = panel.userData.isScreen ? 0.16 : 0.11;
-        const popScale = panel.userData.isScreen ? 0.34 : 0.42;
-        panel.position.z = panel.userData.pop * popLift;
-        const scale = 1 + panel.userData.pop * popScale;
-        panel.scale.set(scale, scale, scale);
+        updatePanelShape(panel, panel.userData.pop);
 
         if (panel.material.map) {
-            if (isActive) panel.material.opacity = panel.userData.isScreen ? 0.95 : 1;
-            else if (activePanel) panel.material.opacity = panel.userData.isScreen ? 0.5 : 0.62;
-            else panel.material.opacity = panel.userData.isScreen ? 0.88 : 0.9;
+            if (isActive) panel.material.opacity = panel.userData.isScreen ? 0.96 : 1;
+            else if (activePanel) panel.material.opacity = panel.userData.isScreen ? 0.48 : 0.58;
+            else panel.material.opacity = panel.userData.isScreen ? 0.9 : 0.92;
         }
     });
 
