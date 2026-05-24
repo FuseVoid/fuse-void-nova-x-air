@@ -322,7 +322,9 @@ let activePanel = null;
 let pausedRing = null;
 let isDragging = false;
 let dragLastX = 0;
+let dragLastY = 0;
 let dragOriginX = 0;
+let dragOriginY = 0;
 let dragRing = null;
 let sceneFade = 1;
 
@@ -874,25 +876,43 @@ function pickRingAt(clientX, clientY) {
 
 function applyRingDrag(group, dx) {
     if (!group || !dx) return;
-    group.userData.rotationY += dx * 0.009;
-    group.userData.dragVelocity += dx * 0.018;
+    group.userData.rotationY += dx * 0.01;
 }
 
 function onPointerDown(e) {
     isDragging = true;
     dragOriginX = e.clientX;
+    dragOriginY = e.clientY;
     dragLastX = e.clientX;
+    dragLastY = e.clientY;
     dragRing = pickRingAt(e.clientX, e.clientY);
+    if (dragRing) {
+        dragRing.userData.pausedForDrag = !dragRing.userData.paused;
+        if (!dragRing.userData.paused) pauseRing(dragRing);
+        dragRing.userData.dragVelocity = 0;
+    }
     document.body.classList.add('is-dragging');
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
 }
 
 function onPointerUp(e) {
     if (!isDragging) return;
-    const moved = Math.abs(e.clientX - dragOriginX);
+    const movedX = Math.abs(e.clientX - dragOriginX);
+    const movedY = Math.abs(e.clientY - dragOriginY);
+    const ring = dragRing;
+
+    if (ring?.userData.pausedForDrag) {
+        resumeRing(ring);
+        ring.userData.pausedForDrag = false;
+    }
+    if (ring) ring.userData.dragVelocity = 0;
+
     isDragging = false;
     dragRing = null;
     document.body.classList.remove('is-dragging');
-    if (moved > 6) return;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+
+    if (movedX > 6 || movedY > 6) return;
 
     setPointerFromEvent(e.clientX, e.clientY);
     raycaster.setFromCamera(pointer, camera);
@@ -902,10 +922,14 @@ function onPointerUp(e) {
 }
 
 function onPointerMove(e) {
-    if (!isDragging) return;
+    if (!isDragging || !dragRing) return;
     const dx = e.clientX - dragLastX;
-    if (dragRing) applyRingDrag(dragRing, dx);
+    const dy = e.clientY - dragLastY;
     dragLastX = e.clientX;
+    dragLastY = e.clientY;
+    if (Math.abs(dx) < 0.01) return;
+    if (Math.abs(dx) < Math.abs(dy) * 0.35 && Math.abs(e.clientX - dragOriginX) < 10) return;
+    applyRingDrag(dragRing, dx);
 }
 
 canvas.addEventListener('pointerdown', onPointerDown);
@@ -942,11 +966,6 @@ function animate() {
     ringGroups.forEach((group) => {
         if (!group.userData.paused) {
             group.userData.rotationY += group.userData.speed * 60 * delta;
-        }
-        if (group.userData.dragVelocity) {
-            group.userData.rotationY += group.userData.dragVelocity * delta * 60;
-            group.userData.dragVelocity *= 0.93;
-            if (Math.abs(group.userData.dragVelocity) < 0.0002) group.userData.dragVelocity = 0;
         }
         group.rotation.y = group.userData.rotationY;
     });
