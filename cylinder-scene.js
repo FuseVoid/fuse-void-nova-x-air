@@ -263,8 +263,7 @@ const SCREEN_ARC = 1.15;
 const SCREEN_H = 0.86;
 const PANEL_RADIUS = RING_RADIUS + 0.058;
 const RING_SLOTS = 10;
-const TEXT_SLOTS = [0, 1, 2, 3];
-const SCREEN_SLOT = 8;
+const SCREEN_SLOT = 4;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
@@ -510,6 +509,11 @@ function addCurvedPanel(group, config, item, angle, options = {}) {
     return panel;
 }
 
+function textItemIndexForSlot(slot) {
+    if (slot < SCREEN_SLOT) return slot;
+    return (slot - SCREEN_SLOT - 1) % 4;
+}
+
 function createRing(config, y, index, screenImg) {
     const group = new THREE.Group();
     group.position.y = y;
@@ -554,25 +558,29 @@ function createRing(config, y, index, screenImg) {
     tagRingPart(botEdge);
     group.add(botEdge);
 
-    config.items.forEach((item, i) => {
-        const tex = makeCompactPanelTexture(item, config.accent);
-        addCurvedPanel(group, config, item, slotAngle(TEXT_SLOTS[i]), { texture: tex });
-    });
+    const screenItem = config.screen ? {
+        isScreen: true,
+        image: config.screen.src,
+        title: config.screen.title,
+        caption: config.screen.caption,
+        tag: '// SCREEN',
+        body: config.screen.caption,
+    } : null;
+    const screenTex = screenImg ? makeScreenTexture(screenImg) : null;
 
-    if (config.screen && screenImg) {
-        const screenItem = {
-            isScreen: true,
-            image: config.screen.src,
-            title: config.screen.title,
-            caption: config.screen.caption,
-            tag: '// SCREEN',
-            body: config.screen.caption,
-        };
-        const screenTex = makeScreenTexture(screenImg);
-        addCurvedPanel(group, config, screenItem, slotAngle(SCREEN_SLOT), {
-            isScreen: true,
-            texture: screenTex,
-        });
+    for (let slot = 0; slot < RING_SLOTS; slot += 1) {
+        const angle = slotAngle(slot);
+        if (slot === SCREEN_SLOT && screenItem && screenTex) {
+            addCurvedPanel(group, config, screenItem, angle, {
+                isScreen: true,
+                texture: screenTex,
+            });
+            continue;
+        }
+
+        const item = config.items[textItemIndexForSlot(slot)];
+        const tex = makeCompactPanelTexture(item, config.accent);
+        addCurvedPanel(group, config, item, angle, { texture: tex });
     }
 
     scene.add(group);
