@@ -58,9 +58,22 @@ body.has-focus #scene-canvas {
     left: 2rem;
     z-index: 20;
     display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.site-header__mark {
+    width: 2.65rem;
+    height: 2.65rem;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.site-header__text {
+    display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    pointer-events: none;
 }
 
 .site-actions {
@@ -388,7 +401,8 @@ body.has-focus #scene-canvas {
 }
 
 @media (max-width: 640px) {
-    .site-header { left: 1.1rem; top: 1.1rem; }
+    .site-header { left: 1.1rem; top: 1.1rem; gap: 0.55rem; }
+    .site-header__mark { width: 2.2rem; height: 2.2rem; }
     .site-actions { top: 1.1rem; right: 1.1rem; gap: 0.35rem; }
     .site-action { font-size: 0.52rem; padding: 0.42rem 0.65rem; letter-spacing: 0.16em; }
     .hint { display: none; }
