@@ -248,14 +248,25 @@ const RINGS = [
 ];
 
 const RING_RADIUS = 4.55;
-const RING_HEIGHT = 1.55;
+const RING_HEIGHT = 1.28;
 const RING_GAP = 3.35;
-const PANEL_W = 3.55;
-const PANEL_H = 1.75;
+const PANEL_W = 2.15;
+const PANEL_H = 0.68;
 
 const canvas = document.getElementById('scene-canvas');
 const scrollSpacer = document.getElementById('scroll-spacer');
 const scrollBar = document.getElementById('scroll-bar');
+const focusLayer = document.getElementById('focus-layer');
+const focusClose = document.getElementById('focus-close');
+const focusCard = document.getElementById('focus-card');
+const focusEls = {
+    tag: document.getElementById('focus-tag'),
+    title: document.getElementById('focus-title'),
+    stat: document.getElementById('focus-stat'),
+    statLabel: document.getElementById('focus-stat-label'),
+    body: document.getElementById('focus-body'),
+    tags: document.getElementById('focus-tags'),
+};
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -316,73 +327,53 @@ function drawLines(ctx, lines, x, y, lineHeight) {
     return y;
 }
 
-function makePanelTexture(item, accent) {
+function truncateLine(ctx, text, maxWidth) {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let t = text;
+    while (t.length > 1 && ctx.measureText(`${t}…`).width > maxWidth) t = t.slice(0, -1);
+    return `${t}…`;
+}
+
+function makeCompactPanelTexture(item, accent) {
     const c = document.createElement('canvas');
-    c.width = 820;
-    c.height = 480;
+    c.width = 420;
+    c.height = 128;
     const ctx = c.getContext('2d');
-    const pad = 40;
+    const pad = 14;
     const w = c.width - pad * 2;
 
     ctx.clearRect(0, 0, c.width, c.height);
-    ctx.fillStyle = 'rgba(255,255,255,0.025)';
-    ctx.fillRect(8, 8, c.width - 16, c.height - 16);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.strokeRect(8, 8, c.width - 16, c.height - 16);
-
-    let y = 32;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
+    let y = 10;
     if (item.tag) {
         ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.9;
-        ctx.font = '600 20px "JetBrains Mono", ui-monospace, monospace';
-        ctx.fillText(item.tag.toUpperCase(), pad, y);
-        y += 34;
+        ctx.globalAlpha = 0.88;
+        ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
+        ctx.fillText(truncateLine(ctx, item.tag.toUpperCase(), w), pad, y);
+        y += 16;
     }
 
     ctx.globalAlpha = 1;
     ctx.fillStyle = accent;
-    ctx.font = '800 58px Inter, system-ui, sans-serif';
-    y = drawLines(ctx, wrapTextLines(ctx, item.title, w), pad, y, 62) + 6;
+    ctx.font = '800 22px Inter, system-ui, sans-serif';
+    const titleLines = wrapTextLines(ctx, item.title, w).slice(0, 2);
+    y = drawLines(ctx, titleLines, pad, y, 24) + 2;
 
     if (item.stat) {
-        y += 4;
-        ctx.fillStyle = accent;
-        ctx.font = '700 44px Inter, system-ui, sans-serif';
-        ctx.fillText(item.stat, pad, y);
-        y += 50;
+        ctx.font = '700 18px Inter, system-ui, sans-serif';
+        ctx.fillText(truncateLine(ctx, item.stat, w), pad, y);
+        y += 22;
         if (item.statLabel) {
-            ctx.fillStyle = 'rgba(255,255,255,0.52)';
-            ctx.font = '400 19px Inter, system-ui, sans-serif';
-            y = drawLines(ctx, wrapTextLines(ctx, item.statLabel, w), pad, y, 24) + 8;
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '400 10px Inter, system-ui, sans-serif';
+            ctx.fillText(truncateLine(ctx, item.statLabel, w), pad, y);
         }
-    }
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-    ctx.beginPath();
-    ctx.moveTo(pad, y);
-    ctx.lineTo(c.width - pad, y);
-    ctx.stroke();
-    y += 22;
-
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = '400 21px Inter, system-ui, sans-serif';
-    y = drawLines(ctx, wrapTextLines(ctx, item.body, w), pad, y, 28) + 10;
-
-    if (item.tags?.length) {
-        ctx.fillStyle = 'rgba(255,255,255,0.38)';
-        ctx.font = '500 16px "JetBrains Mono", ui-monospace, monospace';
-        item.tags.forEach((tag) => {
-            ctx.fillText(`// ${tag}`, pad, y);
-            y += 24;
-        });
     }
 
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-    tex.needsUpdate = true;
     return tex;
 }
 
@@ -431,17 +422,17 @@ function createRing(config, y, index) {
 
     config.items.forEach((item, i) => {
         const angle = (i / config.items.length) * Math.PI * 2 + 0.2;
-        const tex = makePanelTexture(item, config.accent);
+        const tex = makeCompactPanelTexture(item, config.accent);
         const mat = new THREE.MeshBasicMaterial({
             map: tex,
             transparent: true,
             depthWrite: false,
             side: THREE.DoubleSide,
-            opacity: 0.92,
+            opacity: 0.9,
         });
         const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), mat);
-        const px = Math.cos(angle) * (RING_RADIUS + 0.12);
-        const pz = Math.sin(angle) * (RING_RADIUS + 0.12);
+        const px = Math.cos(angle) * (RING_RADIUS + 0.06);
+        const pz = Math.sin(angle) * (RING_RADIUS + 0.06);
         panel.position.set(px, 0, pz);
         panel.lookAt(px * 2.5, 0, pz * 2.5);
 
@@ -450,6 +441,7 @@ function createRing(config, y, index) {
             ringRoot: group,
             home: panel.position.clone(),
             accent: config.accent,
+            item,
             title: item.title,
             focused: false,
             pop: 0,
@@ -481,11 +473,43 @@ function resetPanel(panel) {
     panel.userData.pop = 0;
 }
 
+function hideFocusCard() {
+    focusLayer.classList.remove('is-open');
+    focusLayer.hidden = true;
+    focusLayer.setAttribute('aria-hidden', 'true');
+}
+
+function showFocusCard(item, accent) {
+    const color = accent || '#c8ff4a';
+    focusCard.style.borderColor = `${color}44`;
+    focusCard.style.boxShadow = `0 24px 80px rgba(0,0,0,0.45), 0 0 0 1px ${color}22 inset`;
+    focusEls.tag.textContent = item.tag || '';
+    focusEls.tag.style.color = color;
+    focusEls.title.textContent = item.title;
+    focusEls.title.style.color = color;
+    focusEls.stat.textContent = item.stat || '';
+    focusEls.stat.style.color = color;
+    focusEls.stat.hidden = !item.stat;
+    focusEls.statLabel.textContent = item.statLabel || '';
+    focusEls.statLabel.hidden = !item.statLabel;
+    focusEls.body.textContent = item.body || '';
+    focusEls.tags.innerHTML = '';
+    (item.tags || []).forEach((tag) => {
+        const li = document.createElement('li');
+        li.textContent = tag;
+        focusEls.tags.appendChild(li);
+    });
+    focusLayer.hidden = false;
+    focusLayer.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => focusLayer.classList.add('is-open'));
+}
+
 function clearFocus() {
     if (activePanel) resetPanel(activePanel);
     if (pausedRing) resumeRing(pausedRing);
     activePanel = null;
     pausedRing = null;
+    hideFocusCard();
 }
 
 function focusPanel(panel) {
@@ -499,6 +523,7 @@ function focusPanel(panel) {
     pausedRing = panel.userData.ring;
     panel.userData.focused = true;
     pauseRing(pausedRing);
+    showFocusCard(panel.userData.item, panel.userData.accent);
 }
 
 function setPointerFromEvent(clientX, clientY) {
@@ -554,6 +579,10 @@ function onPointerMove(e) {
 canvas.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointerup', onPointerUp);
 window.addEventListener('pointermove', onPointerMove);
+focusClose.addEventListener('click', clearFocus);
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activePanel) clearFocus();
+});
 
 window.addEventListener('wheel', (e) => {
     scrollTarget = THREE.MathUtils.clamp(scrollTarget + e.deltaY * 0.004, 0, 1);
@@ -613,17 +642,17 @@ function animate() {
 
         const home = panel.userData.home;
         const outward = home.clone().normalize();
-        const popDist = 1.25 * panel.userData.pop;
+        const popDist = 0.35 * panel.userData.pop;
         panel.position.set(
             home.x + outward.x * popDist,
-            home.y + Math.sin(t * 2 + panel.id) * 0.02 * panel.userData.pop,
+            home.y,
             home.z + outward.z * popDist
         );
 
-        const scale = 1 + panel.userData.pop * 0.5;
+        const scale = 1 + panel.userData.pop * 0.12;
         panel.scale.set(scale, scale, scale);
 
-        const baseOp = panel.userData.focused ? 1 : 0.88;
+        const baseOp = panel.userData.focused ? 0.35 : 0.88;
         if (panel.material.map) panel.material.opacity = baseOp;
     });
 

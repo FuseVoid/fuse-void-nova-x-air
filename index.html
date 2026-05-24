@@ -31,6 +31,19 @@
         <div class="scroll-progress__bar" id="scroll-bar"></div>
     </footer>
 
+    <div class="focus-layer" id="focus-layer" hidden>
+        <button type="button" class="focus-layer__backdrop" id="focus-close" aria-label="Close"></button>
+        <article class="focus-card" id="focus-card">
+            <p class="focus-card__tag" id="focus-tag"></p>
+            <h2 class="focus-card__title" id="focus-title"></h2>
+            <p class="focus-card__stat" id="focus-stat"></p>
+            <p class="focus-card__stat-label" id="focus-stat-label"></p>
+            <hr class="focus-card__rule">
+            <p class="focus-card__body" id="focus-body"></p>
+            <ul class="focus-card__tags" id="focus-tags"></ul>
+        </article>
+    </div>
+
     <script type="module" src="cylinder-scene.js"></script>
 </body>
 </html>

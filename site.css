@@ -135,6 +135,123 @@ body.is-dragging { cursor: grabbing; }
 
 #boot-error:not([hidden]) { display: block; }
 
+.focus-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+.focus-layer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.focus-layer[hidden] { display: none; }
+.focus-layer:not([hidden]) { display: flex; }
+
+.focus-layer__backdrop {
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+}
+
+.focus-card {
+    position: relative;
+    z-index: 1;
+    width: min(42rem, 92vw);
+    max-height: min(82vh, 44rem);
+    overflow-y: auto;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 1rem;
+    background: rgba(8, 8, 10, 0.62);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    transform: translateY(12px) scale(0.97);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s;
+}
+
+.focus-layer.is-open .focus-card {
+    transform: translateY(0) scale(1);
+}
+
+.focus-card__tag {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+}
+
+.focus-card__title {
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+
+.focus-card__stat {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+}
+
+.focus-card__stat-label {
+    font-size: clamp(0.9rem, 2vw, 1.05rem);
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.5;
+    margin-bottom: 1.1rem;
+}
+
+.focus-card__rule {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    margin: 0 0 1.1rem;
+}
+
+.focus-card__body {
+    font-size: clamp(0.95rem, 2.2vw, 1.12rem);
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 1.25rem;
+}
+
+.focus-card__tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1rem;
+}
+
+.focus-card__tags li {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+}
+
+.focus-card__tags li::before {
+    content: '// ';
+    opacity: 0.7;
+}
+
 @media (max-width: 640px) {
     .site-header { left: 1.1rem; top: 1.1rem; }
     .hint { display: none; }
