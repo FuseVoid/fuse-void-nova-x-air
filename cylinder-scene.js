@@ -329,6 +329,7 @@ let dragLastY = 0;
 let dragOriginX = 0;
 let dragOriginY = 0;
 let dragRing = null;
+let touchPending = false;
 let sceneFade = 1;
 
 function makeStarSpriteTexture() {
@@ -1098,7 +1099,7 @@ function syncScrollFromPage() {
     }
 
     canvas.style.opacity = String(fade);
-    canvas.style.pointerEvents = IS_MOBILE_LAYOUT ? 'none' : (fade > 0.12 ? 'auto' : 'none');
+    canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
     sceneFade = fade;
 
     document.body.classList.toggle('past-cylinder', y >= gapTop + gapHeight);
@@ -1254,52 +1255,96 @@ function applyRingDrag(group, dx) {
     group.userData.rotationY += dx * 0.01;
 }
 
-function onPointerDown(e) {
-    if (IS_MOBILE_LAYOUT) return;
-    isDragging = true;
-    dragOriginX = e.clientX;
-    dragOriginY = e.clientY;
-    dragLastX = e.clientX;
-    dragLastY = e.clientY;
-    dragRing = pickRingAt(e.clientX, e.clientY);
-    if (dragRing) {
-        dragRing.userData.pausedForDrag = !dragRing.userData.paused;
-        if (!dragRing.userData.paused) pauseRing(dragRing);
-        dragRing.userData.dragVelocity = 0;
-    }
-    document.body.classList.add('is-dragging');
-    try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+function beginRingDrag(ring) {
+    if (!ring) return;
+    dragRing = ring;
+    ring.userData.pausedForDrag = !ring.userData.paused;
+    if (!ring.userData.paused) pauseRing(ring);
+    ring.userData.dragVelocity = 0;
 }
 
-function onPointerUp(e) {
-    if (!isDragging) return;
-    const movedX = Math.abs(e.clientX - dragOriginX);
-    const movedY = Math.abs(e.clientY - dragOriginY);
-    const ring = dragRing;
-
+function endRingDrag(ring) {
     if (ring?.userData.pausedForDrag) {
         resumeRing(ring);
         ring.userData.pausedForDrag = false;
     }
     if (ring) ring.userData.dragVelocity = 0;
+}
 
-    isDragging = false;
-    dragRing = null;
-    document.body.classList.remove('is-dragging');
-    try { canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
-
-    if (movedX > 6 || movedY > 6) return;
-
-    setPointerFromEvent(e.clientX, e.clientY);
+function tryFocusTap(clientX, clientY) {
+    setPointerFromEvent(clientX, clientY);
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(clickable, false);
     if (hits.length) focusPanel(hits[0].object);
     else clearFocus();
 }
 
+function onPointerDown(e) {
+    dragOriginX = e.clientX;
+    dragOriginY = e.clientY;
+    dragLastX = e.clientX;
+    dragLastY = e.clientY;
+    dragRing = pickRingAt(e.clientX, e.clientY);
+
+    if (IS_MOBILE_LAYOUT) {
+        touchPending = true;
+        isDragging = false;
+        return;
+    }
+
+    isDragging = true;
+    if (dragRing) beginRingDrag(dragRing);
+    document.body.classList.add('is-dragging');
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+}
+
+function onPointerUp(e) {
+    const movedX = Math.abs(e.clientX - dragOriginX);
+    const movedY = Math.abs(e.clientY - dragOriginY);
+    const tapThreshold = IS_MOBILE_LAYOUT ? 12 : 6;
+
+    if (IS_MOBILE_LAYOUT && touchPending && !isDragging) {
+        touchPending = false;
+        if (movedX <= tapThreshold && movedY <= tapThreshold) tryFocusTap(e.clientX, e.clientY);
+        dragRing = null;
+        return;
+    }
+
+    if (!isDragging) return;
+    const ring = dragRing;
+
+    endRingDrag(ring);
+    isDragging = false;
+    touchPending = false;
+    dragRing = null;
+    document.body.classList.remove('is-dragging');
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+
+    if (movedX > tapThreshold || movedY > tapThreshold) return;
+    tryFocusTap(e.clientX, e.clientY);
+}
+
 function onPointerMove(e) {
     starMouseX = e.clientX;
     starMouseY = e.clientY;
+
+    if (IS_MOBILE_LAYOUT && touchPending && !isDragging) {
+        const dx = e.clientX - dragOriginX;
+        const dy = e.clientY - dragOriginY;
+        if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.05) {
+            touchPending = false;
+            dragRing = null;
+            return;
+        }
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.05 && dragRing) {
+            touchPending = false;
+            isDragging = true;
+            beginRingDrag(dragRing);
+            document.body.classList.add('is-dragging');
+        }
+        return;
+    }
+
     if (!isDragging || !dragRing) return;
     const dx = e.clientX - dragLastX;
     const dy = e.clientY - dragLastY;

@@ -655,7 +655,6 @@ html.layout-mobile body {
 
 html.layout-mobile #scene-canvas {
     touch-action: pan-y;
-    pointer-events: none;
 }
 
 html.layout-mobile .cylinder-gap {
