@@ -650,6 +650,12 @@ html.layout-mobile body {
     overflow-x: hidden;
     cursor: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+html.layout-mobile #scene-canvas {
+    touch-action: pan-y;
+    pointer-events: none;
 }
 
 html.layout-mobile .cylinder-gap {

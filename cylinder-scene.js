@@ -1098,7 +1098,7 @@ function syncScrollFromPage() {
     }
 
     canvas.style.opacity = String(fade);
-    canvas.style.pointerEvents = fade > 0.12 ? 'auto' : 'none';
+    canvas.style.pointerEvents = IS_MOBILE_LAYOUT ? 'none' : (fade > 0.12 ? 'auto' : 'none');
     sceneFade = fade;
 
     document.body.classList.toggle('past-cylinder', y >= gapTop + gapHeight);
@@ -1255,6 +1255,7 @@ function applyRingDrag(group, dx) {
 }
 
 function onPointerDown(e) {
+    if (IS_MOBILE_LAYOUT) return;
     isDragging = true;
     dragOriginX = e.clientX;
     dragOriginY = e.clientY;
