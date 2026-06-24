@@ -450,6 +450,8 @@ body.past-cylinder .site-end {
 html.is-booting,
 html.is-booting body {
     overflow: hidden;
+    overscroll-behavior: none;
+    height: 100%;
 }
 
 html.is-booting #scene-canvas {
@@ -463,7 +465,17 @@ html.is-booting #scene-canvas {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
     background: #050505;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
     transition: opacity 0.65s ease, visibility 0.65s ease;
 }
 
@@ -563,9 +575,29 @@ html.is-booting #scene-canvas {
         height: 2.85rem;
         margin-bottom: 1.15rem;
     }
+    .site-boot__brand {
+        letter-spacing: 0.22em;
+    }
+    .site-boot__product {
+        letter-spacing: 0.07em;
+        font-size: 1.28rem;
+    }
     .site-boot__device {
-        font-size: 0.52rem;
+        font-size: 0.5rem;
+        letter-spacing: 0.12em;
+        line-height: 1.5;
         margin-bottom: 1.65rem;
+        padding: 0 0.25rem;
+    }
+    .site-boot__inner {
+        width: min(90vw, 16.5rem);
+    }
+}
+
+@media (max-width: 1023px) {
+    html.layout-mobile.is-booting body {
+        position: relative;
+        width: 100%;
     }
 }
 

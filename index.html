@@ -29,7 +29,9 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=2">
     <link rel="apple-touch-icon" href="favicon.png?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="site.css?v=8">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="site.css?v=9">
 </head>
 <body>
     <div id="site-boot" class="site-boot" aria-live="polite" aria-busy="true" aria-label="Loading NOVA-X AIR">
@@ -149,8 +151,9 @@
             const barEl = document.getElementById('boot-bar');
             if (!boot || !countEl) return;
 
-            const BOOT_MIN_MS = 5600;
-            const BOOT_FAILSAFE_MS = 14000;
+            const IS_MOBILE_BOOT = window.matchMedia('(max-width:1023px)').matches;
+            const BOOT_MIN_MS = IS_MOBILE_BOOT ? 3600 : 5200;
+            const BOOT_FAILSAFE_MS = IS_MOBILE_BOOT ? 10000 : 14000;
             const started = performance.now();
             let display = 1;
             let target = 1;
@@ -165,12 +168,15 @@
             }
 
             function tickCounter() {
-                if (display < target) {
+                if (sceneReady && display < 100) {
+                    display = Math.min(100, display + (IS_MOBILE_BOOT ? 2.8 : 1.8));
+                } else if (display < target) {
                     const gap = target - display;
-                    display += Math.max(1, gap * 0.045);
+                    const pace = IS_MOBILE_BOOT ? 0.07 : 0.045;
+                    display += Math.max(1, gap * pace);
                     if (display > target) display = target;
                 } else if (!sceneReady && target < 88) {
-                    target = Math.min(88, target + 0.018);
+                    target = Math.min(88, target + (IS_MOBILE_BOOT ? 0.028 : 0.018));
                 }
                 renderProgress();
 
@@ -185,17 +191,22 @@
                 boot.classList.add('is-done');
                 boot.setAttribute('aria-busy', 'false');
                 document.documentElement.classList.remove('is-booting');
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+                window.requestAnimationFrame(() => window.scrollTo(0, 0));
                 window.setTimeout(() => boot.remove(), 700);
             }
 
             function tryDismiss() {
                 if (dismissed || !sceneReady) return;
-                if (Math.round(display) < 99) return;
+                if (display < 97) return;
                 const elapsed = performance.now() - started;
                 if (elapsed < BOOT_MIN_MS) {
                     window.setTimeout(tryDismiss, BOOT_MIN_MS - elapsed);
                     return;
                 }
+                display = 100;
+                renderProgress();
                 dismissBoot();
             }
 
@@ -230,8 +241,9 @@
             renderProgress();
             requestAnimationFrame(tickCounter);
             creepTimer = window.setInterval(() => {
-                if (target < 18) target += 1;
-            }, 320);
+                if (target < 22) target += 1;
+                if (sceneReady && !dismissed) tryDismiss();
+            }, IS_MOBILE_BOOT ? 260 : 320);
         })();
 
         const SITE_LINKS = {
