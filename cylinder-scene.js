@@ -10,6 +10,9 @@ function showBootError(err) {
 
 try {
 
+const IS_MOBILE_LAYOUT = window.matchMedia('(max-width: 1023px)').matches;
+if (IS_MOBILE_LAYOUT) document.documentElement.classList.add('layout-mobile');
+
 const RINGS = [
     {
         accent: '#c8ff4a',
@@ -1070,7 +1073,9 @@ async function buildRings() {
 
 const totalHeight = (RINGS.length - 1) * RING_GAP;
 
-scrollSpacer.style.height = `${(RINGS.length + 1) * 100}vh`;
+scrollSpacer.style.height = IS_MOBILE_LAYOUT
+    ? `${RINGS.length * 68}vh`
+    : `${(RINGS.length + 1) * 100}vh`;
 
 function cylinderScrollMax() {
     return Math.max(1, scrollSpacer.offsetHeight);
