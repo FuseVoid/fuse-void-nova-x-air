@@ -136,7 +136,7 @@
         </article>
     </div>
 
-    <script type="module" src="cylinder-scene.js?v=18"></script>
+    <script type="module" src="cylinder-scene.js?v=19"></script>
     <script>
         (function initBootLoader() {
             const boot = document.getElementById('site-boot');
@@ -145,6 +145,7 @@
             if (!boot || !countEl) return;
 
             const BOOT_MIN_MS = 5600;
+            const BOOT_FAILSAFE_MS = 14000;
             const started = performance.now();
             let display = 1;
             let target = 1;
@@ -184,7 +185,7 @@
 
             function tryDismiss() {
                 if (dismissed || !sceneReady) return;
-                if (Math.round(display) < 100) return;
+                if (Math.round(display) < 99) return;
                 const elapsed = performance.now() - started;
                 if (elapsed < BOOT_MIN_MS) {
                     window.setTimeout(tryDismiss, BOOT_MIN_MS - elapsed);
@@ -192,6 +193,20 @@
                 }
                 dismissBoot();
             }
+
+            window.setTimeout(() => {
+                if (dismissed) return;
+                if (!sceneReady) {
+                    target = 100;
+                    sceneReady = true;
+                    const box = document.getElementById('boot-error');
+                    if (box) {
+                        box.hidden = false;
+                        box.textContent = 'Scene is taking longer than expected. Showing site…';
+                    }
+                }
+                tryDismiss();
+            }, BOOT_FAILSAFE_MS);
 
             window.__novaxBoot = {
                 setProgress(p) {

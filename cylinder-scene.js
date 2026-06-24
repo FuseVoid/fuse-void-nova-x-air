@@ -997,7 +997,11 @@ function textItemIndexForSlot(slot, itemCount) {
     return (slot - SCREEN_SLOT - 1) % itemCount;
 }
 
-function createRing(config, y, index, screenImg) {
+function createRing(config, y, index, screenImg, options = {}) {
+    const targetScene = options.targetScene ?? scene;
+    const registerMain = options.registerMain !== false;
+    const trackBodies = options.trackBodies !== false;
+
     const group = new THREE.Group();
     group.position.y = y;
     group.userData.speed = config.speed;
@@ -1007,7 +1011,7 @@ function createRing(config, y, index, screenImg) {
 
     const tagRingPart = (mesh) => {
         mesh.userData.ringRoot = group;
-        ringBodies.push(mesh);
+        if (trackBodies) ringBodies.push(mesh);
     };
 
     const ringGeo = new THREE.CylinderGeometry(RING_RADIUS, RING_RADIUS, RING_HEIGHT, 80, 1, true);
@@ -1066,8 +1070,8 @@ function createRing(config, y, index, screenImg) {
         addCurvedPanel(group, config, item, angle, { texture: tex });
     }
 
-    scene.add(group);
-    ringGroups.push(group);
+    targetScene.add(group);
+    if (registerMain) ringGroups.push(group);
     return group;
 }
 
@@ -1097,85 +1101,94 @@ async function initBootPreview() {
     const bootCanvas = document.getElementById('boot-canvas');
     if (!bootCanvas) return;
 
-    window.__novaxBoot?.setProgress?.(46);
+    try {
+        window.__novaxBoot?.setProgress?.(46);
 
-    const bRenderer = new THREE.WebGLRenderer({ canvas: bootCanvas, antialias: true, alpha: true });
-    bRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    bRenderer.setClearColor(0x020408, 1);
-    bRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-    bRenderer.toneMappingExposure = 1.05;
+        const bRenderer = new THREE.WebGLRenderer({ canvas: bootCanvas, antialias: true, alpha: true });
+        bRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        bRenderer.setClearColor(0x020408, 1);
+        bRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+        bRenderer.toneMappingExposure = 1.05;
 
-    const bScene = new THREE.Scene();
-    bScene.background = new THREE.Color(0x010208);
-    bScene.fog = new THREE.FogExp2(0x02040a, 0.022);
+        const bScene = new THREE.Scene();
+        bScene.background = new THREE.Color(0x010208);
+        bScene.fog = new THREE.FogExp2(0x02040a, 0.022);
 
-    const bCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 80);
-    bCamera.position.set(0, 2.1, 10.4);
-    bCamera.lookAt(0, 0, 0);
+        const bCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 80);
+        bCamera.position.set(0, 2.1, 10.4);
+        bCamera.lookAt(0, 0, 0);
 
-    bScene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.42));
-    bScene.add(new THREE.AmbientLight(0x0c1424, 0.24));
-    const bootSun = new THREE.DirectionalLight(0xffc890, 1.45);
-    bootSun.position.set(10, 4, 7);
-    bScene.add(bootSun);
-    const bootCold = new THREE.DirectionalLight(0x3d5f8a, 0.34);
-    bootCold.position.set(-6, -1, -5);
-    bScene.add(bootCold);
+        bScene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.42));
+        bScene.add(new THREE.AmbientLight(0x0c1424, 0.24));
+        const bootSun = new THREE.DirectionalLight(0xffc890, 1.45);
+        bootSun.position.set(10, 4, 7);
+        bScene.add(bootSun);
+        const bootCold = new THREE.DirectionalLight(0x3d5f8a, 0.34);
+        bootCold.position.set(-6, -1, -5);
+        bScene.add(bootCold);
 
-    const savedClickable = clickable;
-    const savedRingBodies = ringBodies;
-    clickable = [];
-    ringBodies = [];
+        const savedClickable = clickable;
+        clickable = [];
 
-    window.__novaxBoot?.setProgress?.(56);
-    const screenImg = await loadImage(RINGS[0].screen.src);
-    window.__novaxBoot?.setProgress?.(66);
-    const ring = createRing(RINGS[0], 0, 0, screenImg);
-    bScene.add(ring);
+        window.__novaxBoot?.setProgress?.(56);
+        const screenImg = await loadImage(RINGS[0].screen.src);
+        window.__novaxBoot?.setProgress?.(66);
+        const ring = createRing(RINGS[0], 0, 0, screenImg, {
+            targetScene: bScene,
+            registerMain: false,
+            trackBodies: false,
+        });
 
-    clickable = savedClickable;
-    ringBodies = savedRingBodies;
+        clickable = savedClickable;
 
-    bootPreview = {
-        renderer: bRenderer,
-        scene: bScene,
-        camera: bCamera,
-        ring,
-        clock: new THREE.Clock(),
-        camPhase: Math.random() * Math.PI * 2,
-    };
+        bootPreview = {
+            renderer: bRenderer,
+            scene: bScene,
+            camera: bCamera,
+            ring,
+            clock: new THREE.Clock(),
+            camPhase: Math.random() * Math.PI * 2,
+        };
 
-    resizeBootPreview();
-    window.addEventListener('resize', resizeBootPreview);
+        resizeBootPreview();
+        window.addEventListener('resize', resizeBootPreview);
 
-    function tickBoot() {
-        if (!bootPreview) return;
-        const delta = bootPreview.clock.getDelta();
-        const t = bootPreview.clock.getElapsedTime();
-        const group = bootPreview.ring;
+        function tickBoot() {
+            if (!bootPreview) return;
+            const delta = bootPreview.clock.getDelta();
+            const t = bootPreview.clock.getElapsedTime();
+            const group = bootPreview.ring;
 
-        if (!group.userData.paused) {
-            group.userData.rotationY += group.userData.speed * 60 * delta;
+            if (!group.userData.paused) {
+                group.userData.rotationY += group.userData.speed * 60 * delta;
+            }
+            group.rotation.y = group.userData.rotationY;
+
+            bootPreview.camPhase += delta * 0.22;
+            bootPreview.camera.position.x = Math.sin(bootPreview.camPhase) * 0.35;
+            bootPreview.camera.position.y = 2.1 + Math.sin(t * 0.55) * 0.08;
+            bootPreview.camera.lookAt(0, 0, 0);
+
+            bootPreview.renderer.render(bootPreview.scene, bootPreview.camera);
+            bootAnimId = requestAnimationFrame(tickBoot);
         }
-        group.rotation.y = group.userData.rotationY;
 
-        bootPreview.camPhase += delta * 0.22;
-        bootPreview.camera.position.x = Math.sin(bootPreview.camPhase) * 0.35;
-        bootPreview.camera.position.y = 2.1 + Math.sin(t * 0.55) * 0.08;
-        bootPreview.camera.lookAt(0, 0, 0);
-
-        bootPreview.renderer.render(bootPreview.scene, bootPreview.camera);
-        bootAnimId = requestAnimationFrame(tickBoot);
+        tickBoot();
+        window.__novaxBoot?.setProgress?.(74);
+    } catch (err) {
+        console.warn('Boot preview skipped:', err);
+        stopBootPreview();
+        window.__novaxBoot?.setProgress?.(74);
     }
-
-    tickBoot();
-    window.__novaxBoot?.setProgress?.(74);
 }
 
 function stopBootPreview() {
     if (bootAnimId) cancelAnimationFrame(bootAnimId);
     bootAnimId = null;
     window.removeEventListener('resize', resizeBootPreview);
+    if (bootPreview?.ring) {
+        bootPreview.scene?.remove(bootPreview.ring);
+    }
     if (bootPreview?.renderer) bootPreview.renderer.dispose();
     bootPreview = null;
 }
