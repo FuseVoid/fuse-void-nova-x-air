@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>if(matchMedia('(max-width:1023px)').matches)document.documentElement.classList.add('layout-mobile');</script>
+    <script>document.documentElement.classList.add('is-booting');if(matchMedia('(max-width:1023px)').matches)document.documentElement.classList.add('layout-mobile');</script>
     <meta property="og:title" content="Fuse Void | NOVA-X AIR">
     <meta property="og:description" content="Launchpad Pro MK3 and Ableton Live MIDI control for iPad. 8×8 session grid, 4-track sequencer, 126 project slots.">
     <meta property="og:image" content="https://fusevoid.github.io/fuse-void-nova-x-air/og-preview.jpg?v=1">
@@ -29,9 +29,31 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=2">
     <link rel="apple-touch-icon" href="favicon.png?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="site.css?v=5">
+    <link rel="stylesheet" href="site.css?v=6">
 </head>
 <body>
+    <div id="site-boot" class="site-boot" aria-live="polite" aria-busy="true" aria-label="Loading NOVA-X AIR">
+        <div class="site-boot__inner">
+            <div class="site-boot__ring" aria-hidden="true">
+                <div class="site-boot__ring-axis">
+                    <div class="site-boot__ring-orbit">
+                        <span class="site-boot__ring-band"></span>
+                        <span class="site-boot__ring-panel" style="--i:0"></span>
+                        <span class="site-boot__ring-panel" style="--i:1"></span>
+                        <span class="site-boot__ring-panel" style="--i:2"></span>
+                        <span class="site-boot__ring-panel" style="--i:3"></span>
+                        <span class="site-boot__ring-panel" style="--i:4"></span>
+                        <span class="site-boot__ring-panel" style="--i:5"></span>
+                        <span class="site-boot__ring-panel" style="--i:6"></span>
+                        <span class="site-boot__ring-panel" style="--i:7"></span>
+                    </div>
+                </div>
+            </div>
+            <p class="site-boot__tag">// FUSE VOID</p>
+            <p class="site-boot__count" id="boot-count">01</p>
+            <p class="site-boot__label">NOVA-X AIR</p>
+        </div>
+    </div>
     <div id="boot-error" hidden></div>
     <header class="site-header">
         <a href="index.html" class="site-header__link">
@@ -125,8 +147,70 @@
         </article>
     </div>
 
-    <script type="module" src="cylinder-scene.js?v=16"></script>
+    <script type="module" src="cylinder-scene.js?v=17"></script>
     <script>
+        (function initBootLoader() {
+            const boot = document.getElementById('site-boot');
+            const countEl = document.getElementById('boot-count');
+            if (!boot || !countEl) return;
+
+            const BOOT_MIN_MS = 2000;
+            const BOOT_MAX_MS = 12000;
+            const started = performance.now();
+            let step = 1;
+            let sceneReady = false;
+            let dismissed = false;
+            let autoTimer = null;
+
+            function renderStep(n) {
+                step = Math.min(10, Math.max(step, n));
+                countEl.textContent = String(step).padStart(2, '0');
+            }
+
+            function dismissBoot() {
+                if (dismissed) return;
+                dismissed = true;
+                if (autoTimer) clearInterval(autoTimer);
+                boot.classList.add('is-done');
+                boot.setAttribute('aria-busy', 'false');
+                document.documentElement.classList.remove('is-booting');
+                window.setTimeout(() => boot.remove(), 650);
+            }
+
+            function tryDismiss() {
+                if (dismissed || !sceneReady) return;
+                const elapsed = performance.now() - started;
+                if (elapsed < BOOT_MIN_MS) {
+                    window.setTimeout(tryDismiss, BOOT_MIN_MS - elapsed);
+                    return;
+                }
+                dismissBoot();
+            }
+
+            window.__novaxBoot = {
+                setStep(n) { renderStep(n); },
+                ready() {
+                    renderStep(10);
+                    sceneReady = true;
+                    tryDismiss();
+                },
+                fail() {
+                    sceneReady = true;
+                    dismissBoot();
+                },
+            };
+
+            renderStep(1);
+            autoTimer = window.setInterval(() => {
+                if (step < 3) renderStep(step + 1);
+                else clearInterval(autoTimer);
+            }, 240);
+
+            window.setTimeout(() => {
+                if (!sceneReady && step < 9) renderStep(Math.min(9, step + 1));
+            }, BOOT_MAX_MS);
+        })();
+
         const SITE_LINKS = {
             appStore: '#',
             instagram: 'https://www.instagram.com/fuse_void/',

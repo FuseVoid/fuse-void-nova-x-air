@@ -446,6 +446,126 @@ body.past-cylinder .site-end {
 
 #boot-error:not([hidden]) { display: block; }
 
+/* ========== BOOT LOADER ========== */
+html.is-booting,
+html.is-booting body {
+    overflow: hidden;
+}
+
+html.is-booting #scene-canvas {
+    opacity: 0;
+}
+
+.site-boot {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(200, 255, 74, 0.06), transparent 42%),
+        #050505;
+    transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+
+.site-boot.is-done {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.site-boot__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    text-align: center;
+}
+
+.site-boot__ring-axis {
+    width: 9.5rem;
+    height: 9.5rem;
+    perspective: 640px;
+    margin-bottom: 0.35rem;
+}
+
+.site-boot__ring-orbit {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: boot-orbit 2.6s linear infinite;
+}
+
+.site-boot__ring-band {
+    position: absolute;
+    inset: 22%;
+    border: 1.5px solid rgba(200, 255, 74, 0.32);
+    border-radius: 50%;
+    transform: rotateX(68deg);
+    box-shadow: 0 0 28px rgba(200, 255, 74, 0.1);
+}
+
+.site-boot__ring-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2.15rem;
+    height: 0.58rem;
+    margin-left: -1.075rem;
+    margin-top: -0.29rem;
+    background: linear-gradient(90deg, rgba(200, 255, 74, 0.06), rgba(200, 255, 74, 0.24));
+    border: 1px solid rgba(200, 255, 74, 0.45);
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(3.45rem);
+}
+
+.site-boot__tag {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(200, 255, 74, 0.72);
+}
+
+.site-boot__count {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: clamp(2.4rem, 10vw, 3.2rem);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.site-boot__label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+@keyframes boot-orbit {
+    from { transform: rotateY(0deg) rotateX(14deg); }
+    to { transform: rotateY(360deg) rotateX(14deg); }
+}
+
+@media (max-width: 640px) {
+    .site-boot__ring-axis {
+        width: 8.2rem;
+        height: 8.2rem;
+    }
+    .site-boot__ring-panel {
+        width: 1.85rem;
+        height: 0.52rem;
+        margin-left: -0.925rem;
+        margin-top: -0.26rem;
+        transform: rotateY(calc(var(--i) * 45deg)) translateZ(2.85rem);
+    }
+}
+
 .focus-layer {
     position: fixed;
     inset: 0;

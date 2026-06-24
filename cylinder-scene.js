@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 
 function showBootError(err) {
     console.error(err);
+    window.__novaxBoot?.fail?.();
     const box = document.getElementById('boot-error');
     if (!box) return;
     box.hidden = false;
@@ -12,6 +13,7 @@ try {
 
 const IS_MOBILE_LAYOUT = window.matchMedia('(max-width: 1023px)').matches;
 if (IS_MOBILE_LAYOUT) document.documentElement.classList.add('layout-mobile');
+window.__novaxBoot?.setStep?.(2);
 
 const RINGS = [
     {
@@ -291,6 +293,7 @@ const focusEls = {
 };
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+window.__novaxBoot?.setStep?.(4);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x020408, 1);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -303,6 +306,7 @@ scene.fog = new THREE.FogExp2(0x02040a, 0.018);
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
 camera.position.set(0, 2.5, 11.5);
 camera.lookAt(0, 0, 0);
+window.__novaxBoot?.setStep?.(5);
 
 scene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.35));
 scene.add(new THREE.AmbientLight(0x0c1424, 0.22));
@@ -1068,8 +1072,11 @@ function createRing(config, y, index, screenImg) {
 }
 
 async function buildRings() {
+    window.__novaxBoot?.setStep?.(6);
     const screens = await Promise.all(RINGS.map((ring) => loadImage(ring.screen.src)));
+    window.__novaxBoot?.setStep?.(8);
     RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i, screens[i]));
+    window.__novaxBoot?.setStep?.(9);
 }
 
 const totalHeight = (RINGS.length - 1) * RING_GAP;
@@ -1372,9 +1379,14 @@ window.addEventListener('resize', resize);
 resize();
 
 const clock = new THREE.Clock();
+let bootFrameSent = false;
 
 function animate() {
     requestAnimationFrame(animate);
+    if (!bootFrameSent) {
+        bootFrameSent = true;
+        window.__novaxBoot?.ready?.();
+    }
     const delta = clock.getDelta();
     const t = clock.getElapsedTime();
 
