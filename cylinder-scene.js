@@ -1076,121 +1076,11 @@ function createRing(config, y, index, screenImg, options = {}) {
 }
 
 async function buildRings() {
-    window.__novaxBoot?.setProgress?.(84);
+    window.__novaxBoot?.setProgress?.(52);
     const screens = await Promise.all(RINGS.map((ring) => loadImage(ring.screen.src)));
-    window.__novaxBoot?.setProgress?.(92);
+    window.__novaxBoot?.setProgress?.(78);
     RINGS.forEach((cfg, i) => createRing(cfg, -i * RING_GAP, i, screens[i]));
-    window.__novaxBoot?.setProgress?.(96);
-}
-
-let bootPreview = null;
-let bootAnimId = null;
-
-function resizeBootPreview() {
-    if (!bootPreview) return;
-    const bootCanvas = document.getElementById('boot-canvas');
-    if (!bootCanvas) return;
-    const w = Math.max(1, bootCanvas.clientWidth);
-    const h = Math.max(1, bootCanvas.clientHeight);
-    bootPreview.renderer.setSize(w, h, false);
-    bootPreview.camera.aspect = w / h;
-    bootPreview.camera.updateProjectionMatrix();
-}
-
-async function initBootPreview() {
-    const bootCanvas = document.getElementById('boot-canvas');
-    if (!bootCanvas) return;
-
-    try {
-        window.__novaxBoot?.setProgress?.(46);
-
-        const bRenderer = new THREE.WebGLRenderer({ canvas: bootCanvas, antialias: true, alpha: true });
-        bRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        bRenderer.setClearColor(0x020408, 1);
-        bRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-        bRenderer.toneMappingExposure = 1.05;
-
-        const bScene = new THREE.Scene();
-        bScene.background = new THREE.Color(0x010208);
-        bScene.fog = new THREE.FogExp2(0x02040a, 0.022);
-
-        const bCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 80);
-        bCamera.position.set(0, 2.1, 10.4);
-        bCamera.lookAt(0, 0, 0);
-
-        bScene.add(new THREE.HemisphereLight(0x1a2844, 0x050508, 0.42));
-        bScene.add(new THREE.AmbientLight(0x0c1424, 0.24));
-        const bootSun = new THREE.DirectionalLight(0xffc890, 1.45);
-        bootSun.position.set(10, 4, 7);
-        bScene.add(bootSun);
-        const bootCold = new THREE.DirectionalLight(0x3d5f8a, 0.34);
-        bootCold.position.set(-6, -1, -5);
-        bScene.add(bootCold);
-
-        const savedClickable = clickable;
-        clickable = [];
-
-        window.__novaxBoot?.setProgress?.(56);
-        const screenImg = await loadImage(RINGS[0].screen.src);
-        window.__novaxBoot?.setProgress?.(66);
-        const ring = createRing(RINGS[0], 0, 0, screenImg, {
-            targetScene: bScene,
-            registerMain: false,
-            trackBodies: false,
-        });
-
-        clickable = savedClickable;
-
-        bootPreview = {
-            renderer: bRenderer,
-            scene: bScene,
-            camera: bCamera,
-            ring,
-            clock: new THREE.Clock(),
-            camPhase: Math.random() * Math.PI * 2,
-        };
-
-        resizeBootPreview();
-        window.addEventListener('resize', resizeBootPreview);
-
-        function tickBoot() {
-            if (!bootPreview) return;
-            const delta = bootPreview.clock.getDelta();
-            const t = bootPreview.clock.getElapsedTime();
-            const group = bootPreview.ring;
-
-            if (!group.userData.paused) {
-                group.userData.rotationY += group.userData.speed * 60 * delta;
-            }
-            group.rotation.y = group.userData.rotationY;
-
-            bootPreview.camPhase += delta * 0.22;
-            bootPreview.camera.position.x = Math.sin(bootPreview.camPhase) * 0.35;
-            bootPreview.camera.position.y = 2.1 + Math.sin(t * 0.55) * 0.08;
-            bootPreview.camera.lookAt(0, 0, 0);
-
-            bootPreview.renderer.render(bootPreview.scene, bootPreview.camera);
-            bootAnimId = requestAnimationFrame(tickBoot);
-        }
-
-        tickBoot();
-        window.__novaxBoot?.setProgress?.(74);
-    } catch (err) {
-        console.warn('Boot preview skipped:', err);
-        stopBootPreview();
-        window.__novaxBoot?.setProgress?.(74);
-    }
-}
-
-function stopBootPreview() {
-    if (bootAnimId) cancelAnimationFrame(bootAnimId);
-    bootAnimId = null;
-    window.removeEventListener('resize', resizeBootPreview);
-    if (bootPreview?.ring) {
-        bootPreview.scene?.remove(bootPreview.ring);
-    }
-    if (bootPreview?.renderer) bootPreview.renderer.dispose();
-    bootPreview = null;
+    window.__novaxBoot?.setProgress?.(94);
 }
 
 const totalHeight = (RINGS.length - 1) * RING_GAP;
@@ -1499,7 +1389,6 @@ function animate() {
     requestAnimationFrame(animate);
     if (!bootFrameSent) {
         bootFrameSent = true;
-        stopBootPreview();
         window.__novaxBoot?.setProgress?.(100);
         window.__novaxBoot?.ready?.();
     }
@@ -1579,13 +1468,11 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-initBootPreview()
-    .then(() => buildRings())
+buildRings()
     .then(() => {
         animate();
     })
     .catch((err) => {
-        stopBootPreview();
         showBootError(err);
     });
 
